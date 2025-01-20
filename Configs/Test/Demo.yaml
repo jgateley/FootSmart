@@ -1,5 +1,5 @@
 # Version, required
-version: 0.3.2
+version: 1.0.0
 # The MIDI channel assigned to the MC6Pro
 midi_channel: 3
 # The list of MIDI channels, the position in the list determines the channel number (1 based)

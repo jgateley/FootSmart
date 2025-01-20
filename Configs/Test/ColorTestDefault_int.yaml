@@ -1,4 +1,4 @@
-version: 0.3.2
+version: 1.0.0
 midi_channel: 3
 
 midi_channels:
@@ -9,8 +9,8 @@ banks:
     text: yellow
     background: orchid
     presets:
-      - short_name: Device Enable
-        toggle_name: Device Bypass
+      - short_name: Device Bypass
+        toggle_name: Device Enable
         toggle_mode: True
         toggle_group: 1
         text: gold
@@ -18,8 +18,8 @@ banks:
         text_toggle: lightpink
         background_toggle: hotpink
         messages:
-          - {type: CC, trigger: Press, toggle_state: one, channel: 1, number: 0, value: 0}
-          - {type: CC, trigger: Press, toggle_state: two, channel: 1, number: 1, value: 1}
+          - {type: CC, trigger: Press, toggle_state: one, channel: 1, number: 1, value: 1}
+          - {type: CC, trigger: Press, toggle_state: two, channel: 1, number: 0, value: 0}
       - short_name: Preset
         text: gray
         background: orange
@@ -27,8 +27,8 @@ banks:
     text: steelblue
     background: lightsteelblue
     presets:
-      - short_name: Device Enable
-        toggle_name: Device Bypass
+      - short_name: Device Bypass
+        toggle_name: Device Enable
         toggle_mode: True
         toggle_group: 1
         text: gold
@@ -36,8 +36,8 @@ banks:
         text_toggle: lightpink
         background_toggle: hotpink
         messages:
-          - {type: CC, trigger: Press, toggle_state: one, channel: 1, number: 0, value: 0}
-          - {type: CC, trigger: Press, toggle_state: two, channel: 1, number: 1, value: 1}
+          - {type: CC, trigger: Press, toggle_state: one, channel: 1, number: 1, value: 1}
+          - {type: CC, trigger: Press, toggle_state: two, channel: 1, number: 0, value: 0}
       - short_name: Preset
         text: tan
         background: brown
@@ -48,8 +48,8 @@ banks:
     text: lime
     background: blue
     presets:
-      - short_name: Device Enable
-        toggle_name: Device Bypass
+      - short_name: Device Bypass
+        toggle_name: Device Enable
         toggle_mode: True
         toggle_group: 1
         text: gold
@@ -57,8 +57,8 @@ banks:
         text_toggle: lightpink
         background_toggle: hotpink
         messages:
-          - {type: CC, trigger: Press, toggle_state: one, channel: 1, number: 0, value: 0}
-          - {type: CC, trigger: Press, toggle_state: two, channel: 1, number: 1, value: 1}
+          - {type: CC, trigger: Press, toggle_state: one, channel: 1, number: 1, value: 1}
+          - {type: CC, trigger: Press, toggle_state: two, channel: 1, number: 0, value: 0}
       - short_name: Preset
         text: lime
         background: blue

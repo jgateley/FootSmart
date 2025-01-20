@@ -95,9 +95,9 @@ bank_action = jg.Dict('bank action',
                                                            "On Enter Bank", var='trigger'))],
                       model=intuitive_model.BankActionModel)
 
-cycle_action_schema = jg.Dict('cycle action',
-                              [jg.Dict.make_key('name', jg.Atom('name', str)),
-                               jg.Dict.make_key('action', jg.Atom('action', str))])
+scroll_action_schema = jg.Dict('scroll action',
+                               [jg.Dict.make_key('name', jg.Atom('name', str)),
+                                jg.Dict.make_key('action', jg.Atom('action', str))])
 
 preset_switch_key = jg.SwitchDict.make_key('type',
                                            jg.Enum('Type', intuitive_model.preset_type,
@@ -108,7 +108,12 @@ preset_case_keys = {
                 jg.SwitchDict.make_key('actions', jg.List('action list', 0, preset_action, var='actions')),
                 ],
     'bypass': [jg.SwitchDict.make_key('device', jg.Atom('device', str, var='device'), required=True)],
-    'cycle': [jg.SwitchDict.make_key('actions', jg.List('actions', 0, cycle_action_schema, var='actions'))]
+    'scroll': [jg.SwitchDict.make_key('actions', jg.List('actions', 0, scroll_action_schema, var='actions'))],
+    'cycle': [jg.SwitchDict.make_key('action', jg.Atom('action', str, var='action')),
+              jg.SwitchDict.make_key('values', jg.List('values', 0, jg.Atom('value', int), var='values')),
+              jg.SwitchDict.make_key('names', jg.List('names', 0, jg.Atom('name', str), var='names')),
+              jg.SwitchDict.make_key('prefix', jg.Atom('prefix', str, var='prefix'))],
+    'empty': []
 }
 
 preset_schema = jg.SwitchDict('preset', preset_switch_key, preset_case_keys, preset_common_keys,

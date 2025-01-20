@@ -1,55 +1,53 @@
-# Morningstar(MC6Pro) Intuitive Configuration
+# FootSmart: an easier way to configure your Morningstar MC6Pro
 ## Overview
-The Morningstar Editor is great software, but presents a friable experience.
-As an alternative, this package defines a YAML or JSON based configuation file with a tool for
-conversion to a MC6Pro backup format,
-that can be restored to the device.
+The Morningstar Editor is great software, but requires a lot of manual effort.
+FootSmart is an alternative, configuring your MC6Pro from a YAML (or JSON) configuration file.
 It may work with
 other Morningstar products, but hasn't yet been tested with them.
-- Human editable configuration file (YAML or JSON)
-- Config file can be stored in source control like github
-- Named messages allow easy reuse
-- Messages are defined in the device that consumes them
-- Named banks
-- Easy to create presets to jump to banks
+- Human editable configuration file (YAML or JSON) can be stored in the cloud or in github
+- Named messages allow easy reuse and are more intuitive
+- Named banks, easier to create jump to bank messages
 - Named color palettes allow consistent use of colors in banks and presets
 - **Easy to create presets that cycle through options**
+- Logical structure, with messages defined in the device that consumes them
 
 
 Instead of editing directly through the Morningstar editor, you edit the configuration file via any editor capable of handling YAML or JSON.
 
 ## Use
 
-Everything is done via the python app `morningstar.py` and the `Controller Backup` tab on the Morningstar Editor.
+Everything is done via the python app `footsmart.py` and the `Controller Backup` tab on the Morningstar Editor.
 You will need Python3 installed, and the packages `PyYAML` and `semver`.
 You also have the following resources:
 
 ### Example.yaml
-This is a sample Intuitive config file, containing all implemented features.
+This is a sample config file, containing all implemented features.
 
 ### Config.yaml
-This is my actual config file, and shows how I use it
+This is my actual config file and shows how I use it.
 
 ### Initial Use
 
-1. Create a backup of your current configuration in the `Controller Backup` tab, using `All banks (including Controller Settings)`, say it is named `backup.json`
-2. Create an intuitive config file, say `myconfig.yaml` or `myconfig.json`.
-3. Convert your intuitive file to a backup format file: `morningstar.py myconfig.yaml myconfig_backup.json` or `python3 morningstar.py myconfig.yaml myconfig_backup.json`
-4. Load the intuitive file via the `Controller Backup` tab.
+1. Create a backup of your current configuration in the `Controller Backup` tab, using `All banks (including Controller Settings)`, and keep it somewhere safe.
+2. Create an FootSmart config file, say `myconfig.yaml` or `myconfig.json`.
+3. Convert your FootSmart file to a backup format file: `footsmart.py myconfig.yaml myconfig_backup.json` or `python3 morningstar.py myconfig.yaml myconfig_backup.json`
+4. Load the `myconfig_backup.json` file via the `Controller Backup` tab.
 5. Restart the controller.
-5. Make changes to the intuitive file as needed and repeat step 4.
+5. Make changes to the FootSmart file as needed and repeat steps 3 and 4.
 
 ### Advanced Use
-There is also a simple format, in addition to the backup and intuitive formats.
-The simple format is a simple version of the backup format, intended to be human readable, but without any of the features of intuitive.
+There is also a _simple_ format, in addition to the backup and FootSmart formats.
+The simple format is a simple version of the backup format, intended to be human readable, but without any of the features of FootSmart.
+It allows you to see exactly what is in your current configuration.
+
 ## Human editable Configuration file
 The MC6Pro backup files are JSON, but are not human editable.
 They are large (over 11MB) and all fields and elements are present, even if empty or not used.
 
-The intuitive format covers the most common use cases in an easy to use format.
+The FootSmart format covers the most common use cases in an easy to use format.
 The top level includes color palettes, devices (including message definitions) and banks.
 
-The Intuitive format only requires values for non-empty fields and elements.
+The FootSmart format only requires values for non-empty fields and elements.
 Banks, for example, would only have banks actually in use instead of all banks.
 
 Messages, MIDI channels (aka devices), and banks are referred to by name, instead of relying on position or a number.
@@ -74,6 +72,8 @@ devices:
 
 ```
 
+Naming is smart, for example the `Bank 0` message is used as is within other messages in the device, but would be used as `Iridium Bank 0` if used in a bank.
+
 When a preset refers to a message, it only refers to the name. This allows easy reuse of a message. For example, here is a bank with several presets:
 
 ```
@@ -88,6 +88,7 @@ When a preset refers to a message, it only refers to the name. This allows easy 
   - {short_name: Home, actions: [{name: Bank Home, trigger: Press}]}
 ```
 
+You can define message groups: a set of messages referred to by a single name.
 ## Named banks
 
 With named banks, the bank's position in the bank list doesn't matter. It is referred to by name.
@@ -100,15 +101,16 @@ For example, you can define a home bank that gives convenient access to other ba
   presets:
     - {short_name: Noodling, actions: [{name: Bank Noodling, trigger: Press}]}
     - {short_name: Devices, actions: [{name: Bank Devices, trigger: Press}]}
-    - {short_name: Songs, actions: [{name: Bank Songs, trigger: Press}]}
+    - {short_name: Songs, actions: [{name: Bank Songs}]}
 
 ```
-## Cycle Through Presets
+The `Press` value is the default for `trigger`, so it is not required (as in the `Songs` preset).
+## Scrolling and Cycling Through Presets
 If you have an amp-in-a-box pedal that provides different amp models, you may want
-to cycle through them in a single preset. This is easy to achieve:
+to scroll through them in a single preset. This is easy to achieve:
 ```
     presets:
-      - type: cycle
+      - type: scroll
         actions:
           - {name: Fender, action: AmpInAPedal Fender}
           - {name: Marshall, action: AmpInAPedal Marshall}
@@ -117,12 +119,25 @@ to cycle through them in a single preset. This is easy to achieve:
 ```
 On bank entry, the pedal is set to Fender, and the preset displays `Fender`.
 Clicking the preset switches the pedal to Marshall, and the preset now displays `Marshal`.
-If you have many options (like for an eq control), you can switch directions with a Long Press.
+If you have many options (e.g. an eq control), you can switch directions with a Long Press.
+
+If you want to cycle through various values for a CC message, you can do this with the cycle preset type:
+
+```
+      - type: cycle
+        action: AmpInAPedal Fender
+        values: [1, 2, 3, 4]
+        names: [Fender, Marshall, Mesa, Peavey]
+```
+In this example, choosing a different amp to model is a single CC message (with values 1, 2, 3 or 4). This preset cycles through them.
+
+`cycle` presets only work with single CC messages. `scroll` presets only work if each element in the scroll has the same length.
+(A message can be a message group, expanding to multiple messages).
 ## Color Palettes
 Color schemas define a set of colors.
 Each set includes many potential targets like `bank_text` or `preset_shifted_text`.
 If a field does not explicitly appear, the `text` or `background` palette is used.
-For example:
+A sample showing all palette fields:
 ```
 palettes:
   - name: default
@@ -143,11 +158,17 @@ palettes:
 ```
 The `default` palette (as seen above) is the default schema, and applies to any bank or preset that doesn't specify a color.
 
+I define four palettes: General, Experimental, Songs, and Navigation.
+- General: used for presets for general config (like enable/bypass of a device)
+- Experimental: used for presets for noodling, or exploring pedals. I define a dark mode for presets that jump to banks/pages for noodling.
+- Songs: used for presets that apply to songs. Again, I define a dark mode version of this for presets that jump to songs.
+- Navigation: used for presets that jump to other banks/pages
+
 ## Simple Format
-The Simple format is a human editable version of the backup format.
-It does not require all fields to be present (default values are skipped), and much of the grammar is simplified.
-It does not provide new features (like named banks), and is intended to be solely a simplified version of the backup format.
-It can be used if you want to experiment, or don't like the intuitive format, or just want to see what is in a backup file
+If you have a configuration that you have worked on for a long time, FootSmart can convert your backup file to an easier to read YAML file.
+This format is called Simple Format.
+Simple Format is close to the original backup format, but in a much simplified view.
+You can convert a backup file to Simple Format using the `-b` argument to `footsmart.py`.
 ## Theory and Development
 
 The heart of the app is a grammar tool.
@@ -155,10 +176,10 @@ The grammar tool handles JSON or YAML data.
 A grammar can transform data into a model (python object representing the meaning), or generate JSON or YAML data from a model.
 YAML is a superset of JSON, and the Python representation is the same.
 
-The backup files have a grammar that is complete. This means all elements must appear, even if they are default values.
+The backup files have a grammar that is complete:  all elements must appear, even if they are default values.
 
-The intuitive files have a grammar that is minimal: only non-default values appear.
-In addition, the intuitive grammar is designed to be convenient to use, and the transformation to a backup grammar object is complex.
+The FootSmart files have a grammar that is minimal: only non-default values appear.
+In addition, the FootSmart grammar is designed to be convenient to use, and the transformation to a backup grammar object is complex.
 
 The backup grammar is defensive: elements that are not yet implemented are coded in the grammar as constants. Getting a value that doesn't match the constant will cause an error. This happens when someone is using a feature that is not yet supported.
 

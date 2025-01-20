@@ -77,7 +77,7 @@ class Palettes:
         palette = None
         if palette_name is not None:
             if palette_name not in self.palettes:
-                raise IntuitiveException.IntuitiveException('no-palette', 'Palette does not exist')
+                raise IntuitiveException.IntuitiveException('no-palette', 'Palette does not exist: %s' % palette_name)
             palette = self.palettes[palette_name]
         if palette is None:
             if default_palette is not None:

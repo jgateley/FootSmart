@@ -250,6 +250,8 @@ class UtilityModel(jg.GrammarModel):
             if backup_message.msg_array_data[2] > 31:
                 backup_message.msg_array_data[2] = 127
         if self.preset_scroll_message_count is not None and self.preset_scroll_message_count != 0:
+            if self.preset_scroll_message_count < 0 or self.preset_scroll_message_count > 8:
+                raise IntuitiveException('Not valid', 'Preset Scroll Message Count out of range')
             backup_sets[2] += 1
             backup_message.msg_array_data[2] = self.preset_scroll_message_count
         if self.text_color is not None and self.text_color != 0:

@@ -21,7 +21,7 @@ import simple_model
 message_type = ['None', 'PC', 'CC']
 message_type_default = 'None'
 
-preset_type = ["vanilla", "bypass", "cycle"]
+preset_type = ["vanilla", "bypass", "scroll", "cycle", "empty"]
 preset_type_default = "vanilla"
 
 
@@ -127,7 +127,8 @@ class ScrollReverseDirection:
             result = True
         return result
 
-    def build(self, _channel):
+    @staticmethod
+    def build(_channel):
         return utility_message.UtilityModel.build_manage_preset_scroll(None, True)
 
 
@@ -284,19 +285,98 @@ class PresetModel(jg.GrammarModel):
         self.actions = None
         self.device = None
         self.palette = None
+        self.action = None
+        self.values = None
+        self.names = None
+        self.prefix = None
 
     # Do not check version in equality
     def __eq__(self, other):
         result = (isinstance(other, PresetModel) and self.type == other.type and
                   self.actions == other.actions and self.short_name == other.short_name and
-                  self.device == other.device and self.palette == other.palette)
+                  self.device == other.device and self.palette == other.palette and self.action == other.action and
+                  self.values == other.values and self.names == other.names and self.prefix == other.prefix)
         if not result:
             self.modified = True
         return result
 
+    def build_scroll_preset(self, scroll_type, names, actions_values, intuitive_model_obj, simple_bank, preset_palette):
+        if len(names) != len(actions_values):
+            raise IntuitiveException('bad_names_values', 'different number of Names and Values')
+        if len(names) < 1:
+            raise IntuitiveException('Names cannot be empty')
+        message_template = None
+        if scroll_type == 'scroll':
+            bank_messages = intuitive_model_obj.action_name_to_simple(actions_values[0], "On Enter Bank")
+        elif scroll_type == 'cycle':
+            message_template = intuitive_model_obj.action_name_to_simple(self.action, "Release")
+            if len(message_template) > 1:
+                raise IntuitiveException('Cycle only supports cycling through single messages')
+            message_template = message_template[0]
+            # Now add the bank entry messages
+            bank_messages = [message_template.clone(value=actions_values[0], trigger="On Enter Bank")]
+        else:
+            raise IntuitiveException('Unknown scroll type')
+
+        messages = []
+        state_messages_length = None
+        for action_value, name in zip(actions_values, names):
+            # Build the rename message
+            message = MessageModel()
+            message.specific_message = RenamePreset(name)
+            message.type = 'Preset Rename'
+            messages += [message.to_simple('Release', None)]
+            # Build the state changing message
+            if scroll_type == 'scroll':
+                state_messages = intuitive_model_obj.action_name_to_simple(action_value, 'Release')
+            elif scroll_type == 'cycle':
+                state_messages = [message_template.clone(value=action_value, trigger='Release')]
+            else:
+                raise IntuitiveException('Unknown scroll type')
+            if state_messages_length is None:
+                state_messages_length = len(state_messages)
+            elif state_messages_length != len(state_messages):
+                raise IntuitiveException('state_messages_length does not match state_messages')
+            messages += state_messages
+        # Now we have the list, but we need to adjust it for the initial state
+        messages_to_move = messages[0:state_messages_length + 1]
+        messages = messages[state_messages_length + 1:] + messages_to_move
+        # Set the number of messages to scroll
+        if state_messages_length > 7:
+            msg = "Too many messages to scroll in scroll preset (> 8): " + str(state_messages_length + 1) + "\n"
+            msg += "Bank " + simple_bank.name + "\n"
+            msg += "Preset actions: "
+            msg += ', '.join(names)
+            raise IntuitiveException('Too many messages', msg)
+        message = MessageModel()
+        message.type = 'Utility'
+        message.specific_message = ScrollNumberMessages(1 + state_messages_length)
+        messages += [message.to_simple('Press', None)]
+        # We must add the change direction message
+        message = MessageModel()
+        message.type = 'Utility'
+        message.specific_message = ScrollReverseDirection()
+        messages += [message.to_simple('Long Press', None)]
+        if len(messages) > 32:
+            msg = "Too many messages in scroll/cycle preset (> 32): " + str(len(messages)) + "\n"
+            msg += "Bank " + simple_bank.name + "\n"
+            msg += "Preset actions: "
+            msg += ', '.join(names)
+            raise IntuitiveException('Too many messages', msg)
+        simple_preset = simple_model.SimplePreset.make(names[0], messages)
+        # Message Scroll set on
+        simple_preset.message_scroll = "On"
+        # We must add the bank message
+        if simple_bank.messages is None:
+            simple_bank.messages = []
+        simple_bank.messages += bank_messages
+        if preset_palette is not None:
+            simple_preset.text = preset_palette.preset_text
+            simple_preset.background = preset_palette.preset_background
+        return simple_preset
+
     # Convert a preset to a simple object
     # use the preset palette if present, otherwise use the bank palette
-    # TODO: This code needs to be cleaned up quite a bit
     def to_simple(self, intuitive_model_obj, simple_bank, bank_palette):
         preset_palette = intuitive_model_obj.palettes_obj.lookup_palette(self.palette, bank_palette)
         if preset_palette is None:
@@ -311,60 +391,48 @@ class PresetModel(jg.GrammarModel):
             # Message 2 in position 2
             enable = self.device + ' Enable'
             bypass = self.device + ' Bypass'
-            messages = intuitive_model_obj.action_name_to_simple(enable, 'Press', "one")
-            messages += intuitive_model_obj.action_name_to_simple(bypass, 'Press', "two")
-            simple_preset = simple_model.SimplePreset.make(enable, messages)
-            simple_preset.toggle_name = bypass
+            messages = intuitive_model_obj.action_name_to_simple(bypass, 'Press', "one")
+            messages += intuitive_model_obj.action_name_to_simple(enable, 'Press', "two")
+            simple_preset = simple_model.SimplePreset.make(bypass, messages)
+            simple_preset.toggle_name = enable
             simple_preset.toggle_mode = True
             simple_preset.toggle_group = intuitive_model_obj.midi_channel_catalogue[self.device]
-            bypass_palette = intuitive_model_obj.palettes_obj.lookup_palette('bypass')
-            if bypass_palette is not None:
-                preset_palette = bypass_palette
+            if self.palette is None:
+                bypass_palette = intuitive_model_obj.palettes_obj.lookup_palette('bypass')
+                if bypass_palette is not None:
+                    preset_palette = bypass_palette
             if preset_palette is not None:
                 simple_preset.text = preset_palette.preset_text
                 simple_preset.background = preset_palette.preset_background
                 simple_preset.text_toggle = preset_palette.preset_toggle_text
                 simple_preset.background_toggle = preset_palette.preset_toggle_background
-        elif self.type == 'cycle':
-            messages = []
+        elif self.type == 'scroll':
             # The "action name" is the name that should be displayed after pressing
             # The "action action" is the message
             # They are listed in the order they appear, and the initial state is the first action
-            bank_messages = intuitive_model_obj.action_name_to_simple(self.actions[0]['action'], "On Enter Bank")
+            names = []
+            actions = []
             for action in self.actions:
-                # Build the rename message
-                message = MessageModel()
-                message.specific_message = RenamePreset(action['name'])
-                message.type = 'Preset Rename'
-                messages += [message.to_simple('Release', None)]
-                # Build the state changing message
-                messages += intuitive_model_obj.action_name_to_simple(action['action'], 'Release')
-            # Now we have the list, but we need to adjust it for the initial state
-            rename = messages.pop(0)
-            state1 = messages.pop(0)
-            messages += [rename, state1]
-            # We must set the number of messages.
-            message = MessageModel()
-            message.type = 'Utility'
-            message.specific_message = ScrollNumberMessages(2)
-            messages += [message.to_simple('Press', None)]
-            # We must add the change direction message
-            message = MessageModel()
-            message.type = 'Utility'
-            message.specific_message = ScrollReverseDirection()
-            messages += [message.to_simple('Long Press', None)]
-            # The initial name is the first name in the list
-            simple_preset = simple_model.SimplePreset.make(self.actions[0]['name'], messages)
-            # Message Scroll set on
-            simple_preset.message_scroll = "On"
-            # We must add the bank message
-            if simple_bank.messages is None:
-                simple_bank.messages = []
-            simple_bank.messages += bank_messages
-            if preset_palette is not None:
-                simple_preset.text = preset_palette.preset_text
-                simple_preset.background = preset_palette.preset_background
+                names += [action['name']]
+                actions += [action['action']]
+            simple_preset = self.build_scroll_preset('scroll', names, actions, intuitive_model_obj, simple_bank,
+                                                     preset_palette)
+        elif self.type == 'cycle':
+            names = []
+            for name in self.names:
+                if self.prefix is not None:
+                    names += [self.prefix + ' ' + name]
+                else:
+                    names += [name]
+            simple_preset = self.build_scroll_preset('cycle', names, self.values, intuitive_model_obj, simple_bank,
+                                                     preset_palette)
+        elif self.type == 'empty':
+            simple_preset = simple_model.SimplePreset.make('', [])
+            simple_preset.text = "black"
+            simple_preset.background = "black"
         else:
+            if self.type is not None:
+                raise IntuitiveException('unknown_type', 'Unknown type ' + self.type)
             # Short name, colors
             # Messages
             messages = []
@@ -380,6 +448,8 @@ class PresetModel(jg.GrammarModel):
             if preset_palette is not None:
                 simple_preset.text = preset_palette.preset_text
                 simple_preset.background = preset_palette.preset_background
+        if not simple_preset.messages:
+            simple_preset.messages = None
         return simple_preset
 
 

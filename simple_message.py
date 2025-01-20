@@ -1765,6 +1765,17 @@ class SimpleMessage(jg.GrammarModel):
             self.modified = True
         return result
 
+    def clone(self, value=None, trigger=None):
+        result = copy.deepcopy(self)
+        if value is not None:
+            if isinstance(self.specific_message, PCCC_message.CCModel):
+                result.specific_message.value = value
+            else:
+                raise IntuitiveException('cannot clone non CC message', 'cannot clone non CC message')
+        if trigger is not None:
+            result.trigger = trigger
+        return result
+
     # This creates a name out of the MIDI message parameters
     def from_backup(self, backup_message, backup_bank, banks, trigger_enum):
 

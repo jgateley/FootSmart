@@ -37,6 +37,8 @@ class PresetRenameModel(jg.GrammarModel):
         return self.new_name
 
     def to_backup(self, backup_message, _bank_catalog, _simple_bank, _simple_preset):
+        if len(self.new_name) > 18:
+            raise IntuitiveException('name too long', 'The name ' + self.new_name + ' is too long')
         data = map(ord, [*self.new_name])
         for i, val in enumerate(data):
             backup_message.msg_array_data[i] = val

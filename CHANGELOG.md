@@ -1,7 +1,23 @@
 
 # Change Log
+## [1.0.0] - 2025-01-20 NAMM Verson
+- Config.yaml: created consistent approach to colors with palettes
+- Config.yaml: more documentation in file
+- Config.yaml: removed unused messages (formerly used in cycle/scrolls)
+- Config.yaml: H9 Chorus parameters mapped out
+- Config.yaml: Added Singular Sound's Aeros message definitions
+- Added cycle preset type, and used it in Config.yaml
+- Added empty preset for spacing
+- Fixed enable/bypass bug
+- Clean up README.md
+- Renamed main app footsmart
+## [0.4.0] - 2024-12-30
+- Cleaned up Example.yaml
+- scroll preset (formerly cycle presets) presets can now handle more than 1 message, but all must be the same length
+- Renamed cycle to scroll, in preparation for a true cycle
+- Implemented cycle presets, which cycle through various values for CC messages
 ## [0.3.2] - 2024-11-16
-- *Press* an *On Bank Entry* are now defaults, not explicitly required
+- *Press* and *On Bank Entry* are now defaults, not explicitly required
 - Cycling through presets, with reverse
 - Message groups - a single named entity for a block of related messages
 - next/previous page, and jump to bank messages

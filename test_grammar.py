@@ -544,6 +544,11 @@ class JsonGrammarDictNodeParseTestCase(JsonGrammarBaseTestCase):
                                       jg.Dict.make_key('a', jg.Atom('atom', int, value=0))])
         self.run_node_parse_error(test_schema, {'a': 0, 'b': 0}, 'dict_duplicate_keys')
 
+    def test_bad_sub_schema(self):
+        test_schema = jg.Dict('foo',
+                              [jg.Dict.make_key('a', int)])
+        self.run_node_parse_error(test_schema, {'a': 1}, 'bad_schema')
+
     # Test parsing dictionaries
     # Both complete and minimal
     def test_parse_dict(self):

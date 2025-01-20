@@ -554,7 +554,7 @@ class List(GrammarNode):
 
 
 class Enum(GrammarNode):
-    def __init__(self, name, base, default, **kwargs):
+    def __init__(self, name, base, default=None, **kwargs):
         super().__init__(name, **kwargs)
         self.base = base
         if default is not None:
@@ -790,6 +790,8 @@ class Grammar:
               model: object) -> object:
         if schema is None:
             raise GrammarException('no_schema', "Schema is None")
+        if not isinstance(schema, GrammarNode):
+            raise GrammarException('bad_schema', "Schema should be a GrammarNode")
 
         new_model = False
         # This really belongs inside the 'if' where we create a new model

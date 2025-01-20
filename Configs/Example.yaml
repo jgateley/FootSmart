@@ -1,8 +1,9 @@
 # System
 # Version must be parsed before anything else, otherwise grammars don't match
+# The midi_channel is the midi channel of the Morningstar device
 # TODO: Clean this up, make it more lifelike
 system:
-  version: 0.3.2
+  version: 1.0.0
   midi_channel: 3
 
 # Color Palettes
@@ -12,49 +13,75 @@ system:
 # The LED fields are a bar at the top/bottom? of the preset, and must be explicitly specified
 # Certain names have special behaviors:
 # default applies if no other palette specified
-# navigator applies to banks and presets used in navigator mode
 # bypass applies to bypass and enable presets
+# These colors are NOT recommended, I choose them solely to be unique in this file, for testing purposes
+# See Config.yaml for better choices
 palettes:
+  # This applies if no palette is explicitly named
   - {name: default, text: black, background: lightyellow}
+  # This is intended for navigation buttons (like jump bank or page up)
+  # It must appear explicitly in the preset (or bank)
   - {name: navigator, text: red, background: yellow}
-  - {name: bypass, text: white, background: red}
+  - name: bypass
+    # Note that in this bypass palette, the text and background colors will never be used
+    # since all the other colors ARE specified
+    text: white
+    background: blue
+    bank_text: aqua
+    bank_background: turquoise
+    preset_text: cadetblue
+    preset_background: steelblue
+    preset_shifted_text: lightsteelblue
+    preset_shifted_background: tan
+    preset_toggle_text: brown
+    preset_toggle_background: cornsilk
+    preset_led: maroon
+    preset_led_shifted: lavender
+    preset_led_toggle: teal
   - name: full
-    text: black
-    background: white
-    bank_text: lightyellow
-    bank_background: red
-    preset_text: yellow
-    preset_background: darkgreen
-    preset_shifted_text: blue
-    preset_shifted_background: forestgreen
-    preset_toggle_text: orchid
-    preset_toggle_background: gray
-    preset_led: olivedrab
+    # Note that in this full palette, the text and background colors will never be used
+    # since all the other colors ARE specified
+    text: lime
+    background: purple
+    bank_text: orchid
+    bank_background: gray
+    # At the moment, the following are not used
+    preset_text: orange
+    preset_background: skyblue
+    preset_shifted_text: deeppink
+    preset_shifted_background: olivedrab
+    preset_toggle_text: mediumslateblue
+    preset_toggle_background: darkgreen
+    preset_led: aqua
     preset_led_shifted: lightsalmon
     preset_led_toggle: tomato
 
 # Devices
-# Name, midi channel, and a list of messages
-# Also, an optional enable and bypass message
-# If the enable/bypass message exists, we create a toggle + group
-# Group is require because, for example, the H9 has multiple banks with the toggle, and they should beunited
+# Name
+# midi channel
+# a list of messages
+# an optional enable and bypass message
+# an initial set of messages, being sent on startup
+# If the enable/bypass message exists, we create a toggle + group, so that it can be used in multiple banks
+# Toggling in one bank, then switching to another bank, the state should be properly reflected
 # The initial field is the initial messages to be sent on startup
 devices:
-  - name: Simple device with no messages
-    channel: 1
-  - name: Device with just messages
+  # This device shows a typical device(overdrive) with two presets (named Grungy and Dirty)
+  # Each preset requires a bank selector first
+  - name: Overdrive
     channel: 2
     messages:
     - {name: Bank 0, type: CC, number: 0, value: 0}
-    - {name: Clean, type: PC, number: 0, setup: Bank 0}
+    - {name: Grungy, type: PC, number: 0, setup: Bank 0}
     - {name: Dirty, type: PC, number: 1, setup: Bank 0}
-  - name: Device with messages and enable and bypass
+  # A chorus device, with enable/bypass and two fancy modes (SquareModWah, PhasyChorus)
+  - name: Chorus
     channel: 3
     enable: {type: CC, number: 0, value: 0}
     bypass: {type: CC, number: 1, value: 0}
     messages:
-    - {name: Chorus SquareModWah, type: PC, number: 0}
-    - {name: Chorus PhasyChorus, type: PC, number: 1}
+    - {name: SquareModWah, type: PC, number: 0}
+    - {name: PhasyChorus, type: PC, number: 1}
   - name: Device with initial state
     channel: 4
     enable: {type: CC, number: 102, value: 127}
@@ -86,6 +113,7 @@ devices:
     - {name: Marshall, type: CC, number: 10, value: 2 }
     - {name: Mesa, type: CC, number: 10, value: 3 }
     - {name: Peavey, type: CC, number: 10, value: 4 }
+    - {name: Drive, type: CC, number: 11, value: 0 }
 
 # Banks - a list of banks
 # Position in the order is preserved
@@ -107,27 +135,31 @@ banks:
     presets:
       - short_name: Preset A
         actions:
-          - name: Device with just messages Clean
+          - name: Overdrive Grungy
       - short_name: Preset B
         actions:
-          - name: Device with just messages Clean
-          - name: Device with messages and enable and bypass Chorus PhasyChorus
+          - name: Overdrive Grungy
+          - name: Chorus PhasyChorus
       - type: bypass
         device: Device with initial state
       # Preset D: jump tp the first bank (named Empty Bank)
       - short_name: Preset D
+        palette: navigator
         actions:
-          - name: Bank Empty Bank
+          - {name: Bank Empty Bank}
       # Jump to another bank
       - short_name: Preset E
+        palette: navigator
         actions:
           - name: Bank Bank with actions
       # Jump to the next page
       - short_name: Preset F
+        palette: navigator
         actions:
           - name: Next Page
       # Jump to the previous page
       - short_name: Preset G
+        palette: navigator
         actions:
           - name: Previous Page
       - short_name: Preset H
@@ -135,27 +167,40 @@ banks:
           - name: Delay Group 1
           - name: Delay Group 2
             trigger: Release
+      # An empty preset, used for spacing
+      - type: empty
   # Bank Actions Example
   - name: Bank with actions
     actions:
-      - name: Device with just messages Clean
-      - name: Device with just messages Dirty
+      - name: Overdrive Grungy
+      - name: Overdrive Dirty
         trigger: On Exit Bank
     presets:
       - short_name: Preset A
         actions:
-          - name: Device with just messages Clean
+          - name: Overdrive Grungy
   - name: AmpInAPedal Exploration
-    description: Demonstrates the cycle preset type, allowing easy exploration of a pedal's capabilities
+    description: Demonstrates the scroll preset type, allowing easy exploration of a pedal's capabilities
     presets:
-      # This preset lets you cycle through the 4 choices available in AmpInAPedal
+      # This preset lets you scroll through the 4 choices available in AmpInAPedal
       # The Fender label is the initial state (and is enforced via On Bank Entry
       # Each label is displayed when that amp selection is active
       # So, each action triggers the next selection
       # A long press reverses direction
-      - type: cycle
+      - type: scroll
         actions:
           - {name: Fender, action: AmpInAPedal Fender}
           - {name: Marshall, action: AmpInAPedal Marshall}
           - {name: Mesa, action: AmpInAPedal Mesa}
           - {name: Peavey, action: AmpInAPedal Peavey}
+      # A different way of doing the scroll
+      - type: cycle
+        action: AmpInAPedal Fender
+        values: [1, 2, 3, 4]
+        names: [Fender, Marshall, Mesa, Peavey]
+      # A more complete demonstration of the cycle feature
+      - type: cycle
+        action: AmpInAPedal Drive
+        values: [64, 80, 96, 112, 127, 0, 16, 32, 48]
+        names: [1/2, 5/8, 3/4, 7/8, max, min, 1/8, 1/4, 3/8]
+        prefix: Drive

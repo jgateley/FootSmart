@@ -1,12 +1,10 @@
 # TODO: Make a device definition section, you can have more than 1 device of the same type
-# TODO: Initial state for enable/bypass is screwed up
-
 
 # System
 # Version must be parsed before anything else, otherwise grammars don't match
-# Navigator values are "One Button", "Two Buttons", or "None" (default)
+# MIDI channel is the channel of the Morningstar device
 system:
-  version: 0.3.2
+  version: 1.0.0
   midi_channel: 3
 
 # Color Palettes
@@ -16,16 +14,47 @@ system:
 # The LED fields are a bar at the top/bottom? of the preset, and must be explicitly specified
 # Certain names have special behaviors:
 # A palette named default applies if no other palette specified
-# bypass applies to bypass and enable presets
+# bypass applies to bypass and enable presets unless another palette is specified in that preset
+#
+# My schema:
+# General is used for miscellaneous stuff, right now a bank for enabling/disabling pedals
+#   General Dark is used for "Bank Jump" presets to a general bank
+# Experimental is used for noodling, exploring pedal configs, anything that is for experimenting/creating
+#   ExperimentalDark is used for "Bank Jump" presets to an experimental bank
+# Songs is used for songs/pieces of music
+#   SongsDark is used for "Bank Jump" presets to a bank of songs or a bank for a song
+# Navigation is used for navigation banks/presets
+#   Note that most presets will use the dark version of experimental, songs, or general instead of this palette
 palettes:
 # Default, used unless something else applies
 - {name: default, text: white, background: black}
-# A bypass color set for Enable/Bypass toggles
-- name: bypass
+# General stuff
+- name: General
+  bank_text: white
+  bank_background: black
   preset_text: black
-  preset_background: green
-  preset_toggle_text: black
-  preset_toggle_background: red
+  preset_background: white
+- name: General Dark
+  text: white
+  background: black
+# A experimental color set for banks/presets for experimenting/noodling
+- name: Experimental
+  bank_text: lime
+  bank_background: black
+  preset_text: black
+  preset_background: lime
+- name: Experimental Dark
+  text: lime
+  background: black
+# A song color set for banks/presets for songs
+- name: Songs
+  bank_text: red
+  bank_background: black
+  preset_text: black
+  preset_background: red
+- name: Songs Dark
+  text: red
+  background: black
 # Navigation colors
 - name: navigation
   text: blue
@@ -33,9 +62,12 @@ palettes:
 
 # Devices
 # Name, midi channel, and a list of messages
-# Also, an optional enable and bypass message
-# If the enable/bypass message exists, we create a toggle + group
-# Group is required because, for example, the H9 has multiple banks with the toggle, and they should be united
+# Also, an optional enable and bypass message, and optional groups, and an initial state
+# If the enable/bypass message exists, we create a toggle + MC6Pro group
+# The MC6Pro Group is required because, for example, the H9 has multiple banks with the toggle, and they should be united
+# The groups are a list of groups (different than the MC6Pro group), each group is a set of related messages.
+# They are a way of doing device presets without actually having a preset stored on the device
+# The initial element is a list of messages to be executed on device startup
 devices:
   # The Strymon Iridium amp-in-a-pedal
   - name: Iridium
@@ -43,12 +75,6 @@ devices:
     enable: {type: CC, number: 102, value: 127}
     bypass: {type: CC, number: 102, value: 0}
     messages:
-    # If you use presets. However, these are fragile
-    - {name: Bank 0, type: CC, number: 0, value: 0}
-    - {name: Clean Preset, type: PC, number: 0, setup: Bank 0}
-    - {name: Burry Preset, type: PC, number: 1, setup: Bank 0}
-    - {name: Distortion Preset, type: PC, number: 2, setup: Bank 0}
-    - {name: Max Distortion Preset, type: PC, number: 3, setup: Bank 0}
     # Choose the amp type
     - {name: Deluxe Reverb, type: CC, number: 19, value: 1}
     - {name: AC30, type: CC, number: 19, value: 2}
@@ -64,370 +90,733 @@ devices:
     - {name: Cab Celestion Vintage, type: CC, number: 20, value: 7}
     - {name: Cab Celestion T652, type: CC, number: 20, value: 8}
     # Drive/Level
-    - {name: Level0, type: CC, number: 12, value: 0}
-    - {name: Level1, type: CC, number: 12, value: 16}
-    - {name: Level2, type: CC, number: 12, value: 32}
-    - {name: Level3, type: CC, number: 12, value: 48}
-    - {name: Level4, type: CC, number: 12, value: 64}
-    - {name: Level5, type: CC, number: 12, value: 80}
-    - {name: Level6, type: CC, number: 12, value: 96}
-    - {name: Level7, type: CC, number: 12, value: 112}
-    - {name: Level8, type: CC, number: 12, value: 127}
-    - {name: Drive0, type: CC, number: 13, value: 0}
-    - {name: Drive1, type: CC, number: 13, value: 16}
-    - {name: Drive2, type: CC, number: 13, value: 32}
-    - {name: Drive3, type: CC, number: 13, value: 48}
-    - {name: Drive4, type: CC, number: 13, value: 64}
-    - {name: Drive5, type: CC, number: 13, value: 80}
-    - {name: Drive6, type: CC, number: 13, value: 96}
-    - {name: Drive7, type: CC, number: 13, value: 112}
-    - {name: Drive8, type: CC, number: 13, value: 127}
+    # This first is just used for cycle presets
+    - {name: Level, type: CC, number: 12, value: 0}
+    - {name: Clean Level, type: CC, number: 12, value: 106}
+    - {name: Burry Level, type: CC, number: 12, value: 40}
+    - {name: Distorted Level, type: CC, number: 12, value: 32}
+    - {name: Plexi Level, type: CC, number: 12, value: 32}
+   # This first is just used for cycle presets
+    - {name: Drive, type: CC, number: 13, value: 0}
+    - {name: Clean Drive, type: CC, number: 13, value: 0}
+    - {name: Burry Drive, type: CC, number: 13, value: 80}
+    - {name: Distorted Drive, type: CC, number: 13, value: 96}
+    - {name: Plexi Drive, type: CC, number: 13, value: 127}
     # Bass
-    - {name: Bass0, type: CC, number: 14, value: 0}
-    - {name: Bass1, type: CC, number: 14, value: 16}
-    - {name: Bass2, type: CC, number: 14, value: 32}
-    - {name: Bass3, type: CC, number: 14, value: 48}
-    - {name: Bass4, type: CC, number: 14, value: 64}
-    - {name: Bass5, type: CC, number: 14, value: 80}
-    - {name: Bass6, type: CC, number: 14, value: 96}
-    - {name: Bass7, type: CC, number: 14, value: 112}
-    - {name: Bass8, type: CC, number: 14, value: 127}
+    - {name: Bass, type: CC, number: 14, value: 0}
+    - {name: Flat Bass, type: CC, number: 14, value: 64}
     # Mid
-    - {name: Mid0, type: CC, number: 15, value: 0}
-    - {name: Mid1, type: CC, number: 15, value: 16}
-    - {name: Mid2, type: CC, number: 15, value: 32}
-    - {name: Mid3, type: CC, number: 15, value: 48}
-    - {name: Mid4, type: CC, number: 15, value: 64}
-    - {name: Mid5, type: CC, number: 15, value: 80}
-    - {name: Mid6, type: CC, number: 15, value: 96}
-    - {name: Mid7, type: CC, number: 15, value: 112}
-    - {name: Mid8, type: CC, number: 15, value: 127}
+    - {name: Mid, type: CC, number: 15, value: 0}
+    - {name: Flat Mid, type: CC, number: 15, value: 64}
     # Treble
-    - {name: Treble0, type: CC, number: 16, value: 0}
-    - {name: Treble1, type: CC, number: 16, value: 16}
-    - {name: Treble2, type: CC, number: 16, value: 32}
-    - {name: Treble3, type: CC, number: 16, value: 48}
-    - {name: Treble4, type: CC, number: 16, value: 64}
-    - {name: Treble5, type: CC, number: 16, value: 80}
-    - {name: Treble6, type: CC, number: 16, value: 96}
-    - {name: Treble7, type: CC, number: 16, value: 112}
-    - {name: Treble8, type: CC, number: 16, value: 127}
+    - {name: Treble, type: CC, number: 16, value: 0}
+    - {name: Flat Treble, type: CC, number: 16, value: 64}
     # Room Level
-    - {name: Room Level 0, type: CC, number: 17, value: 0}
-    - {name: Room Level 1, type: CC, number: 17, value: 16}
-    - {name: Room Level 2, type: CC, number: 17, value: 32}
-    - {name: Room Level 3, type: CC, number: 17, value: 48}
-    - {name: Room Level 4, type: CC, number: 17, value: 64}
-    - {name: Room Level 5, type: CC, number: 17, value: 80}
-    - {name: Room Level 6, type: CC, number: 17, value: 96}
-    - {name: Room Level 7, type: CC, number: 17, value: 112}
-    - {name: Room Level 8, type: CC, number: 17, value: 127}
+    - {name: Room Level, type: CC, number: 17, value: 0}
+    - {name: Room Level 1/2, type: CC, number: 17, value: 64}
     # Room Size
+    - {name: Room Size, type: CC, number: 18, value: 1}
     - {name: Small Room, type: CC, number: 18, value: 1}
     - {name: Medium Room, type: CC, number: 18, value: 2}
     - {name: Large Room, type: CC, number: 18, value: 3}
     groups:
       - name: Clean
-        messages: [Deluxe Reverb, Cab Deluxe Reverb, Drive0, Level6, Bass4, Mid4, Treble4, Room Level 4, Medium Room]
+        messages: [Deluxe Reverb, Clean Drive, Clean Level]
       - name: Burry Rhythm
-        messages: [AC30, Cab Mesa Boogie, Drive5, Level3, Bass4, Mid4, Treble4, Room Level 4, Medium Room]
+        messages: [AC30, Burry Drive, Burry Level]
       - name: Distorted Rhythm
-        messages: [AC30, Cab Mesa Boogie, Drive6, Level2, Bass4, Mid4, Treble4, Room Level 4, Medium Room]
+        messages: [AC30, Distorted Drive, Distorted Level]
       - name: Distorted Plexi
-        messages: [Plexi, Cab Mesa Boogie, Drive8, Level2, Bass4, Mid4, Treble4, Room Level 4, Medium Room]
+        messages: [Plexi, Plexi Drive, Plexi Level]
+      # Static are the messages common to all groups, that do not change.
+      - name: Static
+        messages: [Cab Mesa Boogie, Flat Bass, Flat Mid, Flat Treble, Room Level 1/2, Large Room]
+    initial:
+      [Enable, Static]
 
   # The Scarlett audio interface, I haven't done much with it yet
   - name: Scarlett
     channel: 2
 
   # The Eventide H9 effects pedal
+  #
+  # There is no CC message to select an algorithm.
+  # Instead, you have to create a preset based on the algorithm, and then switch to that preset
+  #
+  # Once you have done that, you have 10 parameters that can be modified.
+  # For some of the algorithms, I have customized the parameters to be easier to use
   - name: H9
     channel: 4
     enable: {type: CC, number: 0, value: 0}
     bypass: {type: CC, number: 1, value: 0}
     messages:
-    - {name: Chorus SquareModWah, type: PC, number: 0}
-    - {name: Chorus PhasyChorus, type: PC, number: 1}
-    - {name: Chorus Polymodelicious, type: PC, number: 2}
-    - {name: Phaser FunkPhase, type: PC, number: 3}
-    - {name: Phaser SawModPhaser, type: PC, number: 4}
-    - {name: Phaser Vibraphaser, type: PC, number: 5}
-    - {name: Wah BigModdedPlanets, type: PC, number: 6}
-    - {name: Wah LessEvenAutoWah, type: PC, number: 7}
-    - {name: Wah PhasyWah, type: PC, number: 8}
     - {name: PreludeIntro, type: PC, number: 9}
-    initial: [Enable, Chorus PhasyChorus]
+    - {name: Chorus, type: PC, number: 0}
+    # Parameters, generic, applies to all algorithms
+    - {name: Parameter 1, type: CC, number: 22, value: 0}
+    - {name: Parameter 2, type: CC, number: 23, value: 0}
+    - {name: Parameter 3, type: CC, number: 24, value: 0}
+    - {name: Parameter 4, type: CC, number: 25, value: 0}
+    - {name: Parameter 5, type: CC, number: 26, value: 0}
+    - {name: Parameter 6, type: CC, number: 27, value: 0}
+    - {name: Parameter 7, type: CC, number: 28, value: 0}
+    - {name: Parameter 8, type: CC, number: 29, value: 0}
+    - {name: Parameter 9, type: CC, number: 30, value: 0}
+    - {name: Parameter 10, type: CC, number: 31, value: 0}
+    # Chorus Parameters, specific to the Chorus algorithm
+    # Chorus Parameter 1: Intensity, 0-99
+    - {name: Chorus Intensity 0, type: CC, number: 22, value: 0}
+    - {name: Chorus Intensity 90, type: CC, number: 22, value: 115}
+    # Chorus Parameter 1: Type
+    - {name: Chorus Type Liquid, type: CC, number: 23, value: 16}
+    - {name: Chorus Type Organic, type: CC, number: 23, value: 48}
+    - {name: Chorus Type Shimmer, type: CC, number: 23, value: 80}
+    - {name: Chorus Type Classic, type: CC, number: 23, value: 112}
+    # Chorus Parameter 2: Depth, 0-99
+    - {name: Chorus Depth 0, type: CC, number: 24, value: 0}
+    - {name: Chorus Depth 30, type: CC, number: 24, value: 38}
+    # Chorus Parameter 3: Speed (not linear, so I put in some example values)
+    - {name: Chorus Speed .1Hz, type: CC, number: 25, value: 0}
+    - {name: Chorus Speed .16Hz, type: CC, number: 25, value: 16}
+    - {name: Chorus Speed .27Hz, type: CC, number: 25, value: 32}
+    - {name: Chorus Speed .44Hz, type: CC, number: 25, value: 48}
+    - {name: Chorus Speed .73Hz, type: CC, number: 25, value: 64}
+    - {name: Chorus Speed 1.2Hz, type: CC, number: 25, value: 80}
+    - {name: Chorus Speed 1.96Hz, type: CC, number: 25, value: 96}
+    - {name: Chorus Speed 3.23Hz, type: CC, number: 25, value: 112}
+    - {name: Chorus Speed 5Hz, type: CC, number: 25, value: 127}
+    # Chorus Shape parameter
+    - {name: Chorus Shape Sine, type: CC, number: 26, value: 0}
+    - {name: Chorus Shape Triangle, type: CC, number: 26, value: 14}
+    - {name: Chorus Shape Peak, type: CC, number: 26, value: 28}
+    - {name: Chorus Shape Random, type: CC, number: 26, value: 42}
+    - {name: Chorus Shape Ramp, type: CC, number: 26, value: 52}
+    - {name: Chorus Shape Square, type: CC, number: 26, value: 66}
+    - {name: Chorus Shape Sample and Hold, type: CC, number: 26, value: 80}
+    - {name: Chorus Shape Envelope, type: CC, number: 26, value: 94}
+    - {name: Chorus Shape ADSR, type: CC, number: 26, value: 108}
+    - {name: Chorus Shape Expr, type: CC, number: 26, value: 126}
+    # Chorus Feedback/MDO/Filter parameter, 0-99
+    - {name: Chorus Fdbk/MDO/Fltr 0, type: CC, number: 27, value: 0}
+    - {name: Chorus Fdbk/MDO/Fltr 50, type: CC, number: 27, value: 63}
+    # Filter DMOD parameter, 0-99
+    - {name: Chorus DMOD 0, type: CC, number: 28, value: 0}
+    - {name: Chorus DMOD 40, type: CC, number: 28, value: 48}
+    # Filter SMOD parameter, 0-99
+    - {name: Chorus SMOD 0, type: CC, number: 29, value: 0}
+    - {name: Chorus SMOD 60, type: CC, number: 29, value: 77}
+    # Filter Rate parameter, a selection of example values
+    - {name: Chorus Rate .12x, type: CC, number: 30, value: 0}
+    - {name: Chorus Rate .21x, type: CC, number: 30, value: 16}
+    - {name: Chorus Rate .36x, type: CC, number: 30, value: 32}
+    - {name: Chorus Rate .61x, type: CC, number: 30, value: 48}
+    - {name: Chorus Rate 1.03x, type: CC, number: 30, value: 64}
+    - {name: Chorus Rate 1.75x, type: CC, number: 30, value: 80}
+    - {name: Chorus Rate 2.96x, type: CC, number: 30, value: 96}
+    - {name: Chorus Rate 5.02x, type: CC, number: 30, value: 112}
+    - {name: Chorus Rate 8x, type: CC, number: 30, value: 127}
+    # Chorus ModSrc parameter
+    - {name: Chorus ModSrc Sine, type: CC, number: 31, value: 0}
+    - {name: Chorus ModSrc Triangle, type: CC, number: 31, value: 14}
+    - {name: Chorus ModSrc Peak, type: CC, number: 31, value: 28}
+    - {name: Chorus ModSrc Random, type: CC, number: 31, value: 42}
+    - {name: Chorus ModSrc Ramp, type: CC, number: 31, value: 52}
+    - {name: Chorus ModSrc Square, type: CC, number: 31, value: 66}
+    - {name: Chorus ModSrc Sample and Hold, type: CC, number: 31, value: 80}
+    - {name: Chorus ModSrc Envelope, type: CC, number: 31, value: 94}
+    - {name: Chorus ModSrc ADSR, type: CC, number: 31, value: 108}
+    - {name: Chorus ModSrc Expr, type: CC, number: 31, value: 126}
+    groups:
+      - name: No Chorus
+        messages: [Chorus Intensity 0, Chorus Depth 0, Chorus Fdbk/MDO/Fltr 0, Chorus DMOD 0, Chorus SMOD 0]
+      - name: Basic Chorus
+        messages: [Chorus Intensity 90, Chorus Depth 30, Chorus Fdbk/MDO/Fltr 50, Chorus DMOD 40, Chorus SMOD 60]
+      - name: Chorus Static
+        messages: [Chorus, Chorus Type Liquid, Chorus Speed 1.2Hz, Chorus Shape Sine, Chorus Rate 1.75x, Chorus ModSrc Sine]
+    initial: [Enable, Chorus Static, No Chorus]
 
-  # The Strymon Timeline delay pedal
-  - name: Timeline
+  # The Strymon TimeLine delay pedal
+  # TODO: Some delay types have different/additional configuration parameters
+  # TODO: Such as dTape tape speed.
+  # TODO: These are not done yet
+  - name: TimeLine
     channel: 5
     enable: {type: CC, number: 102, value: 127}
     bypass: {type: CC, number: 102, value: 0}
     messages:
-    - {name: Bank 0, type: CC, number: 0, value: 0 }
-    - {name: Bank 1, type: CC, number: 0, value: 1 }
-    - {name: Easy Delay, type: PC, number: 100, setup: Bank 0 }
-    - {name: Heavy Delay, type: PC, number: 101, setup: Bank 0 }
-    initial: [Enable, Easy Delay]
+      # Delay Machines
+      - {name: Digital, type: CC, number: 19, value: 2}
+      - {name: Dual, type: CC, number: 19, value: 3}
+      - {name: Pattern, type: CC, number: 19, value: 4}
+      - {name: Reverse, type: CC, number: 19, value: 5}
+      - {name: Ice, type: CC, number: 19, value: 6}
+      - {name: Duck, type: CC, number: 19, value: 7}
+      - {name: Swell, type: CC, number: 19, value: 8}
+      - {name: Trem, type: CC, number: 19, value: 9}
+      - {name: Filter, type: CC, number: 19, value: 10}
+      - {name: Lo-Fi, type: CC, number: 19, value: 11}
+      - {name: dTape, type: CC, number: 19, value: 0}
+      - {name: dBucket, type: CC, number: 19, value: 1}
+      # Time
+      # To experiment with the time parameter, the TimeLine should not sync to an external MIDI clock
+      - {name: noclock, type: CC, number: 63, value: 0}
+      # Turn the external MIDI clock sync back on
+      - {name: clock, type: CC, number: 63, value: 1}
+      # A selection of time values
+      - {name: Time 60ms, type: CC, number: 3, value: 0, setup: noclock}     # 60 ms
+      - {name: Time 140ms, type: CC, number: 3, value: 16, setup: noclock}    # 140 ms
+      - {name: Time 220ms, type: CC, number: 3, value: 32, setup: noclock}    # 220 ms
+      - {name: Time 360ms, type: CC, number: 3, value: 48, setup: noclock}    # 360 ms
+      - {name: Time 520ms, type: CC, number: 3, value: 64, setup: noclock}    # 520 ms
+      - {name: Time 780ms, type: CC, number: 3, value: 80, setup: noclock}    # 780 ms
+      - {name: Time 1150ms, type: CC, number: 3, value: 96, setup: noclock}    # 1150 ms
+      - {name: Time 1760ms, type: CC, number: 3, value: 112, setup: noclock}   # 1760 ms
+      - {name: Time 2500ms, type: CC, number: 3, value: 127, setup: noclock}   # 2500 ms
+      # Repeats
+      - {name: Repeats, type: CC, number: 9, value: 0}
+      - {name: Repeats Default, type: CC, number: 9, value: 48}
+      # Mix
+      - {name: Mix, type: CC, number: 14, value: 0}
+      - {name: Mix Dry, type: CC, number: 14, value: 0}
+      - {name: Mix 50-50, type: CC, number: 14, value: 64}
+      # Filter, named PFilter since there is a Filter machine
+      - {name: PFilter, type: CC, number: 15, value: 0}
+      - {name: PFilter Default, type: CC, number: 15, value: 48}
+      # Grit
+      - {name: Grit, type: CC, number: 16, value: 0}
+      - {name: Grit Default, type: CC, number: 16, value: 80}
+      # Speed
+      - {name: Speed, type: CC, number: 17, value: 0}
+      - {name: Speed Default, type: CC, number: 17, value: 48}
+      # Depth
+      - {name: Depth, type: CC, number: 18, value: 0}
+      - {name: Depth Default, type: CC, number: 18, value: 48}
+      # Smear, ranges from 0 to 18
+      - {name: Smear, type: CC, number: 38, value: 0}
+      - {name: Smear Default, type: CC, number: 38, value: 6}
+      # High Pass, ranges from 0 to 20
+      - {name: High Pass, type: CC, number: 47, value: 0}
+      # These are for device presets, I don't use them, just here for demonstration purposes
+      # A preset would be something like {name: MyDelayPreset, type: PC, number: 25, setup: Bank 0}
+      - {name: Bank 0, type: CC, number: 0, value: 0 }
+      - {name: Bank 1, type: CC, number: 0, value: 1 }
+    groups:
+      # It is hard to bypass the device, because it must be part of a toggle group
+      # Instead, I just try tricks like running the mix dry
+      - name: None
+        messages: [Mix Dry]
+      - name: Basic
+        messages: [Mix 50-50]
+      - name: Static
+        messages: [Digital, Time 140ms, Repeats Default, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
+    initial: [Enable, Static, Basic]
 
-  # The Aeros Looper pedal
+  # The Aeros looper pedal
   - name: Aeros
     channel: 6
     messages:
-    - {name: Main Click, type: CC, number: 45, value: 8}
-    - {name: Aux Click, type: CC, number: 45, value: 9}
+    # Go to home screen (get rid of a song selected)
     - {name: Home, type: CC, number: 35, value: 2}
+    # Bank select for songs. Assuming we won't have more than 128 songs, since there aren't that many banks on the MC6Pro
     - {name: MSB, type: CC, number: 0, value: 0}
+    # Song select, note use of MSB
+    # I would prefer not to use PC here, but the Aeros isn't set up well for config as code, and creating the song
+    # via MIDI is a challenge
     - {name: FWIW, type: PC, number: 0, setup: MSB}
     - {name: Swirling, type: PC, number: 1, setup: MSB}
     - {name: Saints and Martyrs, type: PC, number: 2, setup: MSB}
+    - {name: After the Goldrush, type: PC, number: 3, setup: MSB}
+    - {name: I'll be Around, type: PC, number: 4, setup: MSB}
+    # Transition to a part (1 - 6)
+    - {name: Select Part 1, type: CC, number: 113, value: 1}
+    - {name: Select Part 2, type: CC, number: 113, value: 2}
+    - {name: Select Part 3, type: CC, number: 113, value: 3}
+    - {name: Select Part 4, type: CC, number: 113, value: 4}
+    - {name: Select Part 5, type: CC, number: 113, value: 5}
+    - {name: Select Part 6, type: CC, number: 113, value: 6}
+    - {name: Transition, type: CC, number: 113, value: 0}
+    - {name: Next Part, type: CC, number: 113, value: 127}
+    - {name: Previous Part, type: CC, number: 113, value: 126}
+    # Reverse Tracks
+    - {name: Reverse Selected, type: CC, number: 46, value: 0}
+    - {name: Reverse 1, type: CC, number: 46, value: 1}
+    - {name: Reverse 2, type: CC, number: 46, value: 2}
+    - {name: Reverse 3, type: CC, number: 46, value: 3}
+    - {name: Reverse 4, type: CC, number: 46, value: 4}
+    - {name: Reverse 5, type: CC, number: 46, value: 5}
+    - {name: Reverse 6, type: CC, number: 46, value: 6}
+    # Start/Stop song
+    - {name: Start, type: CC, number: 43, value: 1}
+    - {name: Stop, type: CC, number: 43, value: 0}
+    - {name: Stop Now, type: CC, number: 43, value: 127}
+    # Recording
+    # TODO: Does record part also trigger record track?
+    - {name: Record Part, type: CC, number: 40, value: 0}
+    - {name: Record Track, type: CC, number: 41, value: 0}
+    - {name: Commit, type: CC, number: 41, value: 20}
+    # These are toggle commands, impossible to guess the initial state
+    - {name: Main Click, type: CC, number: 45, value: 8}
+    - {name: Aux Click, type: CC, number: 45, value: 9}
+    groups:
+      - {name: Part 1, messages: [Select Part 1, Transition]}
+      - {name: Part 2, messages: [Select Part 2, Transition]}
+      - {name: Part 3, messages: [Select Part 3, Transition]}
+      - {name: Part 4, messages: [Select Part 4, Transition]}
+      - {name: Part 5, messages: [Select Part 5, Transition]}
+      - {name: Part 6, messages: [Select Part 6, Transition]}
 
 # Banks - a list of banks
 # Position in the order is preserved
 # I use the first bank as a navigation bank
 # All other banks have a "return to home" preset
+#
+# Presets A-E are the "real" presets
+# Preset F will be a navigation preset, returning to home or going up/down a page
+# I use the empty preset as needed to always keep the navigation on the F preset
 banks:
 
 # I use the home bank as a navigation bank, it is just a set of "jump to" presets
+# This is currently an exception to the navigation rule above, preset F is currently "real"
+# If I add one more preset, though, this will get rid of the exception
 - name: Home
   description: Navigation to other banks
   palette: navigation
   presets:
+    - short_name: Bypass
+      actions: [{name: Bank Bypass}]
+      palette: General Dark
     - short_name: Noodling
       actions: [{name: Bank Noodling}]
+      palette: Experimental Dark
     - short_name: Iridium
       actions: [{name: Bank Iridium}]
-    - {short_name: Other Devices, actions: [{name: Bank Devices}]}
-    - {short_name: Songs, actions: [{name: Bank Songs}]}
-    - {short_name: Bypass, actions: [{name: Bank Bypass}]}
+      palette: Experimental Dark
+    - short_name: TimeLine
+      actions: [{name: Bank TimeLine}]
+      palette: Experimental Dark
+    - short_name: H9
+      actions: [{name: Bank H9}]
+      palette: Experimental Dark
+    - short_name: Songs
+      actions: [{name: Bank Songs}]
+      palette: Songs Dark
+
+# The bypass bank allows enabling/bypassing devices in one convenient location
+- name: Bypass
+  description: Bypass/enable of all devices
+  palette: General
+  presets:
+    - type: bypass
+      device: H9
+      palette: General
+    - type: bypass
+      device: TimeLine
+      palette: General
+    - type: bypass
+      device: Iridium
+      palette: General
+    - type: empty
+    - type: empty
+    - short_name: Home
+      palette: navigation
+      actions: [{name: Bank Home}]
+
 
 # The Noodling bank is a collection of my favorite sounds
 - name: Noodling
   description: A selection of cool guitar sounds
+  palette: Experimental
+  actions:
+  - {name: Iridium Static}
+  - {name: TimeLine Static}
+  - {name: H9 Chorus Static}
   presets:
-    - short_name: Clean
+    - type: scroll
       actions:
-        - {name: Iridium Clean}
-    - short_name: Burry Rhythm
+        - {name: Clean, action: Iridium Clean}
+        - {name: Burry Rhythm, action: Iridium Burry Rhythm}
+        - {name: Distorted Rhythm, action: Iridium Distorted Rhythm}
+        - {name: Distorted Plexi, action: Iridium Distorted Plexi}
+    - type: scroll
       actions:
-        - {name: Iridium Burry Rhythm}
-    - short_name: Distorted Rhythm
+        - {name: No Delay, action: TimeLine None}
+        - {name: Delay, action: TimeLine Basic}
+    - type: scroll
       actions:
-        - {name: Iridium Distorted Rhythm}
-    - short_name: Distorted Plexi
-      actions:
-        - {name: Iridium Distorted Plexi}
-    - short_name: ''
+        - {name: No Chorus, action: H9 No Chorus}
+        - {name: Chorus, action: H9 Basic Chorus}
+    - type: empty
+    - type: empty
     - short_name: Home
       palette: navigation
       actions: [{name: Bank Home}]
 
 # The Iridium bank
+# Explore different settings on the Iridium pedal
 - name: Iridium
   description: Iridium Exploration
+  palette: Experimental
   presets:
     # Note that names are the currently active config, but the action takes you to the next config
-    # Also note that the initial state (on bank entry) is the last action in the list
+    # Also note that the initial state (on bank entry) is the last action in the list, but the first name in the list
+    # Amp type
     - type: cycle
-      actions:
-        - {name: Deluxe Reverb, action: Iridium Deluxe Reverb}
-        - {name: AC30, action: Iridium AC30}
-        - {name: Plexi, action: Iridium Plexi}
+      action: Iridium Deluxe Reverb
+      values: [1, 2, 3]
+      names: [Deluxe Reverb, AC30, Plexi]
+    # Cab
     - type: cycle
-      actions:
-        - {name: Deluxe Reverb, action: Iridium Cab Deluxe Reverb}
-        - {name: Blues Junior, action: Iridium Cab Blues Junior}
-        - {name: Vibrolux, action: Iridium Cab Vibrolux}
-        - {name: AC30, action: Iridium Cab AC30}
-        - {name: Custom Celestion, action: Iridium Cab Custom Celestion}
-        - {name: Mesa Boogie, action: Iridium Cab Mesa Boogie}
-        - {name: Celestion G12, action: Iridium Cab Celestion G12}
-        - {name: Celestion Vintage, action: Iridium Cab Celestion Vintage}
-        - {name: Celestion T652, action: Iridium Cab Celestion T652}
+      action: Iridium Cab Deluxe Reverb
+      values: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+      names:
+        - Cab Deluxe Reverb
+        - Cab Blues Junior
+        - Cab Vibrolux
+        - Cab AC30
+        - Cab Custom Celest.
+        - Cab Mesa Boogie
+        - Cab Celestion G12
+        - Cab Celest. Vint.
+        - Cab Celestion T652
+    # Level and drive, they have to be balanced against each other so the volume is the same
     - type: cycle
-      actions:
-        - {name: Level4, action: Iridium Level4}
-        - {name: Level5, action: Iridium Level5}
-        - {name: Level6, action: Iridium Level6}
-        - {name: Level7, action: Iridium Level7}
-        - {name: Level8, action: Iridium Level8}
-        - {name: Level0, action: Iridium Level0}
-        - {name: Level1, action: Iridium Level1}
-        - {name: Level2, action: Iridium Level2}
-        - {name: Level3, action: Iridium Level3}
+      action: Iridium Level
+      values: [64, 80, 96, 112, 127, 0, 16, 32, 48]
+      names: [1/2, 5/8, 3/4, 7/8, max, min, 1/8, 1/4, 3/8]
+      prefix: Level
     - type: cycle
-      actions:
-        - {name: Drive0, action: Iridium Drive0}
-        - {name: Drive1, action: Iridium Drive1}
-        - {name: Drive2, action: Iridium Drive2}
-        - {name: Drive3, action: Iridium Drive3}
-        - {name: Drive4, action: Iridium Drive4}
-        - {name: Drive5, action: Iridium Drive5}
-        - {name: Drive6, action: Iridium Drive6}
-        - {name: Drive7, action: Iridium Drive7}
-        - {name: Drive8, action: Iridium Drive8}
-    - short_name: ''
+      action: Iridium Drive
+      values: [0, 16, 32, 48, 64, 80, 96, 112, 127]
+      names: [min, 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, max]
+      prefix: Drive
+    - type: empty
     - short_name: Eq & Room/Home
       palette: navigation
       actions: [{name: Next Page}, {name: Bank Home, trigger: Long Press}]
     - type: cycle
-      actions:
-        - {name: Bass4, action: Iridium Bass4}
-        - {name: Bass5, action: Iridium Bass5}
-        - {name: Bass6, action: Iridium Bass6}
-        - {name: Bass7, action: Iridium Bass7}
-        - {name: Bass8, action: Iridium Bass8}
-        - {name: Bass0, action: Iridium Bass0}
-        - {name: Bass1, action: Iridium Bass1}
-        - {name: Bass2, action: Iridium Bass2}
-        - {name: Bass3, action: Iridium Bass3}
+      action: Iridium Bass
+      values: [64, 80, 96, 112, 127, 0, 16, 32, 48]
+      names: [1/2, 5/8, 3/4, 7/8, max, min, 1/8, 1/4, 3/8]
+      prefix: Bass
     - type: cycle
-      actions:
-        - {name: Mid4, action: Iridium Mid4}
-        - {name: Mid5, action: Iridium Mid5}
-        - {name: Mid6, action: Iridium Mid6}
-        - {name: Mid7, action: Iridium Mid7}
-        - {name: Mid8, action: Iridium Mid8}
-        - {name: Mid0, action: Iridium Mid0}
-        - {name: Mid1, action: Iridium Mid1}
-        - {name: Mid2, action: Iridium Mid2}
-        - {name: Mid3, action: Iridium Mid3}
+      action: Iridium Mid
+      values: [64, 80, 96, 112, 127, 0, 16, 32, 48]
+      names: [1/2, 5/8, 3/4, 7/8, max, min, 1/8, 1/4, 3/8]
+      prefix: Mid
     - type: cycle
-      actions:
-        - {name: Treble4, action: Iridium Treble4}
-        - {name: Treble5, action: Iridium Treble5}
-        - {name: Treble6, action: Iridium Treble6}
-        - {name: Treble7, action: Iridium Treble7}
-        - {name: Treble8, action: Iridium Treble8}
-        - {name: Treble0, action: Iridium Treble0}
-        - {name: Treble1, action: Iridium Treble1}
-        - {name: Treble2, action: Iridium Treble2}
-        - {name: Treble3, action: Iridium Treble3}
+      action: Iridium Treble
+      values: [64, 80, 96, 112, 127, 0, 16, 32, 48]
+      names: [1/2, 5/8, 3/4, 7/8, max, min, 1/8, 1/4, 3/8]
+      prefix: Treble
     - type: cycle
-      actions:
-        - {name: Room Level 4, action: Iridium Room Level 4}
-        - {name: Room Level 5, action: Iridium Room Level 5}
-        - {name: Room Level 6, action: Iridium Room Level 6}
-        - {name: Room Level 7, action: Iridium Room Level 7}
-        - {name: Room Level 8, action: Iridium Room Level 8}
-        - {name: Room Level 0, action: Iridium Room Level 0}
-        - {name: Room Level 1, action: Iridium Room Level 1}
-        - {name: Room Level 2, action: Iridium Room Level 2}
-        - {name: Room Level 3, action: Iridium Room Level 3}
+      action: Iridium Room Level
+      values: [64, 80, 96, 112, 127, 0, 16, 32, 48]
+      names: [1/2, 5/8, 3/4, 7/8, max, min, 1/8, 1/4, 3/8]
+      prefix: Room Level
     - type: cycle
-      actions:
-        - {name: Medium Room, action: Iridium Medium Room}
-        - {name: Large Room, action: Iridium Large Room}
-        - {name: Small Room, action: Iridium Small Room}
+      action: Iridium Room Size
+      values: [3, 2, 1]
+      names: [Large, Medium, Small]
+      prefix: Room
     - short_name: Iridium
       palette: navigation
       actions: [{name: Previous Page}]
 
-- name: Iridium Presets
-  description: Iridium Presets
+# Explore the TimeLine settings
+- name: TimeLine
+  description: Exploring the TimeLine
+  palette: Experimental
   presets:
-  - {type: bypass, device: Iridium}
-  - {short_name: Clean, actions: [{name: Iridium Clean Preset}]}
-  - {short_name: Burry, actions: [{name: Iridium Burry Preset}]}
-  - {short_name: Distortion, actions: [{name: Iridium Distortion Preset}]}
-  - {short_name: Max Distortion, actions: [{name: Iridium Max Distortion Preset}]}
-  - {short_name: Home, actions: [{name: Bank Home}]}
+  # Delay Type
+  - type: cycle
+    action: TimeLine Digital
+    values: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1]
+    names: [Digital, Dual, Pattern, Reverse, Ice, Duck, Swell, Trem, Filter, Lo-Fi, dTape, dBucket]
+  # This one cannot be a cycle, as the action expands into multiple messages.
+  # It could be fixed, since the CC is the last message, maybe some day
+  # Delay Time
+  - type: scroll
+    actions:
+      - {name: 60ms, action: TimeLine Time 60ms}
+      - {name: 140ms, action: TimeLine Time 140ms}
+      - {name: 220ms, action: TimeLine Time 220ms}
+      - {name: 360ms, action: TimeLine Time 360ms}
+      - {name: 520ms, action: TimeLine Time 520ms}
+      - {name: 780ms, action: TimeLine Time 780ms}
+      - {name: 1150ms, action: TimeLine Time 1150ms}
+      - {name: 1760ms, action: TimeLine Time 1760ms}
+      - {name: 1760ms, action: TimeLine Time 1760ms}
+  # Delay Repeats
+  - type: cycle
+    action: TimeLine Repeats
+    values: [0, 16, 32, 48, 64, 80, 96, 112, 127]
+    names: [min, 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, max]
+    prefix: Repeats
+  # Mix between delay and dry signal
+  - type: cycle
+    action: TimeLine Mix
+    values: [64, 80, 96, 112, 127, 0, 16, 32, 48]
+    names: [1/2, 5/8, 3/4, 7/8, wet, dry, 1/8, 1/4, 3/8]
+    prefix: Mix
+  - type: empty
+  - short_name: More/Home
+    palette: navigation
+    actions: [{name: Next Page}, {name: Bank Home, trigger: Long Press}]
+  # Delay Filter Parameter
+  - type: cycle
+    action: TimeLine PFilter
+    values: [48, 64, 80, 96, 112, 127, 0, 16, 32]
+    names: [3/8, 1/2, 5/8, 3/4, 7/8, wet, dry, 1/8, 1/4]
+    prefix: Filter
+  # Delay Grit
+  - type: cycle
+    action: TimeLine Grit
+    values: [80, 96, 112, 127, 0, 16, 32, 48, 64]
+    names: [5/8, 3/4, 7/8, wet, dry, 1/8, 1/4, 3/8, 1/2]
+    prefix: Grit
+  # Delay Speed
+  - type: cycle
+    action: TimeLine Speed
+    values: [48, 64, 80, 96, 112, 127, 0, 16, 32]
+    names: [3/8, 1/2, 5/8, 3/4, 7/8, wet, dry, 1/8, 1/4]
+    prefix: Speed
+  # Delay Depth
+  - type: cycle
+    action: TimeLine Depth
+    values: [48, 64, 80, 96, 112, 127, 0, 16, 32]
+    names: [3/8, 1/2, 5/8, 3/4, 7/8, wet, dry, 1/8, 1/4]
+    prefix: Depth
+  # Delay Smear
+  - type: cycle
+    action: TimeLine Smear
+    values: [6, 8, 10, 12, 14, 16, 18, 0, 2, 4]
+    names: ["6", "8", "10", "12", "14", "16", "18", "0", "2", "4"]
+    prefix: Smear
+  - short_name: Previous
+    palette: navigation
+    actions: [{name: Previous Page}, {name: Next Page, trigger: Long Press}]
+  # Delay High Pass Filter
+  - type: cycle
+    action: TimeLine High Pass
+    values: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+    names: ["0", "2", "4", "6", "8", "10", "12", "14", "16", "18", "20"]
+  - type: empty
+  - type: empty
+  - type: empty
+  - type: empty
+  - short_name: Previous
+    palette: navigation
+    actions: [{name: Previous Page}, {name: Next Page, trigger: Long Press}]
 
-# The bypass bank allows enabling/bypassing devices in one convenient location
-- name: Bypass
-  description: Bypass/enable of all devices
+# The H9 is complex, allowing many different effects
+# This bank is a navigation bank, getting you to a particular effect on the H9
+- name: H9
+  description: H9 algorithms
+  palette: Experimental
   presets:
-    - {type: bypass, device: H9 }
-    - {type: bypass, device: Timeline }
-    - {type: bypass, device: Iridium}
-    - short_name: Home
-      palette: navigation
-      actions: [{name: Bank Home}]
-
-# The devices bank is a navigation bank, getting you to individual device control banks
-- name: Devices
-  description: Navigation to Device control pages
-  palette: navigation
-  presets:
-    - {short_name: H9, actions: [{name: Bank H9}]}
-    - {short_name: Timeline, actions: [{name: Bank Timeline}]}
-    - {short_name: Iridium, actions: [{name: Bank Iridium}]}
+    - short_name: H9 Chorus
+      actions: [{name: Bank H9 Chorus}]
+      palette: Experimental Dark
+    # TODO: complete this
+    - short_name: H9 Phaser
+      palette: Experimental Dark
+    - type: empty
+    - type: empty
+    - type: empty
     - {short_name: Home, actions: [{name: Bank Home}]}
+
+- name: H9 Chorus
+  description: H9 chorus exploration
+  palette: Experimental
+  actions: [{name: H9 Chorus}]
+  presets:
+  # The Intensity, range 0-99
+  - type: cycle
+    action: H9 Chorus Intensity 90
+    values: [115, 127, 0, 13, 26, 38, 51, 64, 77, 90, 102]
+    names: ["90", "99", "0", "10", "20", "30", "40", "50", "60", "70", "80"]
+    prefix: Intensity
+  # The chorus type
+  - type: cycle
+    action: H9 Chorus Type Liquid
+    values: [16, 48, 80, 112]
+    names: [Liquid, Organic, Shimmer, Classic]
+  # Chorus depth, ranging from 0 to 99
+  - type: cycle
+    action: H9 Chorus Depth 30
+    values: [38, 51, 64, 77, 90, 102, 115, 127, 0, 13, 26]
+    names: ["30", "40", "50", "60", "70", "80", "90", "99", "0", "10", "20"]
+    prefix: Depth
+  # A selection of chorus speeds
+  - type: cycle
+    action: H9 Chorus Speed .1Hz
+    values: [80, 96, 112, 127, 0, 16, 32, 48, 64]
+    names: [1.2Hz, 1.96Hz, 3.23Hz, 5Hz, .1Hz, .16Hz, .27Hz, .44Hz, .73Hz]
+    prefix: Speed
+  # The chorus shape, ten different values
+  - type: cycle
+    action: H9 Chorus Shape Sine
+    values: [0, 14, 28, 42, 52, 66, 80, 94, 108, 126]
+    names:
+      - Sine
+      - Triangle
+      - Peak
+      - Random
+      - Ramp
+      - Square
+      - Sample and Hold
+      - Envelope
+      - ADSR
+      - Expr
+  - short_name: Next/Home
+    palette: navigation
+    actions: [{name: Next Page, trigger: Press}, {name: Bank Home, trigger: Long Press}]
+  # Chorus Feedback/MDO/Filter parameter, range 0-99
+  - type: cycle
+    action: H9 Chorus Fdbk/MDO/Fltr 50
+    values: [64, 77, 90, 102, 115, 127, 0, 13, 26, 38, 51]
+    names: ["50", "60", "70", "80", "90", "99", "0", "10", "20", "30", "40"]
+    prefix: Fdbk/MDO/Flter
+  # Chorus DMOD, range 0-99
+  - type: cycle
+    action: H9 Chorus DMOD 40
+    values: [51, 64, 77, 90, 102, 115, 127, 0, 13, 26, 38]
+    names: ["40", "50", "60", "70", "80", "90", "99", "0", "10", "20", "30"]
+    prefix: DMOD
+  # Chorus SMOD, range 0-99
+  - type: cycle
+    action: H9 Chorus SMOD 60
+    values: [77, 90, 102, 115, 127, 0, 13, 26, 38, 51, 64]
+    names: ["60", "70", "80", "90", "99", "0", "10", "20", "30", "40", "50"]
+    prefix: SMOD
+  # A selection of chorus rates, expressed as a multiplier
+  - type: cycle
+    action: H9 Chorus Rate .12x
+    values: [80, 96, 112, 127, 0, 16, 32, 48, 64]
+    names: [1.75x, 2.96x, 5.02x, 8x, .12x, .21x, .36x, .61x, 1.03x]
+    prefix: Rate
+  # Chorus ModSrc shape
+  - type: cycle
+    action: H9 Chorus ModSrc Sine
+    values: [0, 14, 28, 42, 52, 66, 80, 94, 108, 126]
+    names:
+      - Sine
+      - Triangle
+      - Peak
+      - Random
+      - Ramp
+      - Square
+      - Sample and Hold
+      - Envelope
+      - ADSR
+      - Expr
+  - short_name: Prev
+    palette: navigation
+    actions: [{name: Previous Page, trigger: Press}]
 
 # The songs bank is a navigation bank, getting you to individual song banks
 - name: Songs
   description: Navigation to Song pages
-  palette: navigation
+  palette: Songs Dark
   presets:
+    - {short_name: After the Goldrush, actions: [{name: Bank After the Goldrush}]}
+    - {short_name: Record I'll be Around, actions: [{name: Bank I'll be Around}]}
+    - {short_name: I'll be Around, actions: [{name: Bank I'll be Around}]}
     - {short_name: For What It's Worth, actions: [{name: Bank For What It's Worth}]}
     - {short_name: Swirling, actions: [{name: Bank Swirling}]}
-    - {short_name: Saints and Martyrs, actions: [{name: Bank Saints and Martyrs}]}
+    - short_name: Next/Home
+      palette: navigation
+      actions: [{name: Next Page, trigger: Press}, {name: Bank Home, trigger: Long Press}]
+    - {short_name: Sad-Eyed Lady, actions: [{name: Bank Sad-Eyed Lady}]}
     - {short_name: Prelude in C# Minor, actions: [{ name: Bank Prelude in C# Minor}]}
-    - {short_name: Home, actions: [{name: Bank Home}]}
+    - {short_name: No More, actions: [{name: Bank No More}]}
+    - {short_name: Saints and Martyrs, actions: [{name: Bank Saints and Martyrs}]}
+    - type: empty
+    - short_name: Home
+      palette: navigation
+      actions: [{name: Bank Home}]
 
-- name: H9
-  description: Navigation to H9 algorithm groups of sounds
-  palette: navigation
+# After the goldrush is a single part, single track
+# The MIDI record capabilities of the Aeros are limited, so I have to record it manually
+# There are three guitar parts:
+#   The rhythm guitar (used for recording)
+#   The lead fill guitar (used during verses)
+#   The lead guitar (for the solo between the second and third verse)
+- name: After the Goldrush
+  description: Neil Young
+  palette: Songs
+  actions:
+  - {name: Aeros After the Goldrush}
+  - {name: Aeros Home, trigger: On Exit Bank}
   presets:
-    - {short_name: H9 Chorus, actions: [{name: Bank H9 Chorus}]}
-    - {short_name: H9 Phaser, actions: [{name: Bank H9 Phaser}]}
-    - {short_name: H9 Wah, actions: [{name: Bank H9 Wah}]}
-    - {short_name: Home, actions: [{name: Bank Home}]}
+    - type: cycle
+      action: Aeros Start
+      values: [1, 127]
+      names: [Start, Stop]
+    - type: scroll
+      actions:
+        - name: Fill Gtr
+          action: Iridium Burry Rhythm
+        - name: Lead Gtr
+          action: Iridium Distorted Rhythm
+    - type: empty
+    # This is used for recording
+    - short_name: Rhythm Gtr
+      actions: [{name: Iridium Clean}]
+    - type: empty
+    - short_name: Home
+      palette: navigation
+      actions: [{name: Bank Home}]
 
-- name: H9 Chorus
-  description: H9 chorus sounds
+# I'll be around is a 2 part 2 track song, plus 1 instrument live
+# Bass track (guitar with a pitch-shifter)
+# Backing rhythm guitar
+# Live Lead guitar
+# We can't do much with recording, but this bank has the sounds configured as presets
+- name: Record I'll be Around
+  description: Yo La Tengo
+  palette: Songs
+  actions:
+  - {name: Aeros I'll be Around}
+  - {name: Aeros Home, trigger: On Exit Bank}
   presets:
-# A preset can be a bypass preset, this is type bypass
-# That generates a preset with the short_name Enabled, toggle_name Bypassed, colors bypass, toggle_mode true, and toggle_group
-# generated automatically from the device, and messages from the device
-  - {type: bypass, device: H9}
-  - short_name: SquareModWah
-    actions: [{name: H9 Chorus SquareModWah}]
-  - short_name: PhasyChorus
-    actions: [{name: H9 Chorus PhasyChorus}]
-  - short_name: Polymodelicious
-    actions: [{name: H9 Chorus Polymodelicious}]
-  - short_name: Home
-    palette: navigation
-    actions: [{name: Bank Home}]
+    - short_name: Bass
+    - short_name: Rhythm
+    - type: empty
+    - type: empty
+    - type: empty
+    - short_name: Home
+      palette: navigation
+      actions: [{name: Bank Home}]
 
-- name: H9 Phaser
-  description: H9 phaser sounds
+# This bank is performing the song
+# It has two guitar settings: the lead during the vocals, and the lead solo at the end
+# It has the switching between the two parts
+- name: I'll be Around
+  description: Yo La Tengo
+  palette: Songs
+  actions:
+  - {name: Aeros I'll be Around}
+  - {name: Aeros Home, trigger: On Exit Bank}
   presets:
-  - {type: bypass, device: H9}
-  - short_name: FunkPhase
-    actions: [{name: H9 Phaser FunkPhase}]
-  - short_name: SawModPhaser
-    actions: [{name: H9 Phaser SawModPhaser}]
-  - short_name: Vibraphaser
-    actions: [{name: H9 Phaser Vibraphaser}]
-  - short_name: Home
-    palette: navigation
-    actions: [{name: Bank Home}]
-
-- name: H9 Wah
-  description: H9 wah sounds
-  presets:
-  - {type: bypass, device: H9}
-  - {short_name: BigModdedPlanets, actions: [{name: H9 Wah BigModdedPlanets}]}
-  - {short_name: LessEvenAutoWah, actions: [{name: H9 Wah LessEvenAutoWah}]}
-  - {short_name: PhasyWah, actions: [{name: H9 Wah PhasyWah}]}
-  - short_name: Home
-    palette: navigation
-    actions: [{name: Bank Home,}]
-
-- name: Timeline
-  description: Various delay sounds
-  presets:
-  - {type: bypass, device: Timeline}
-  - {short_name: Easy Delay, actions: [{name: Timeline Easy Delay}]}
-  - {short_name: Heavy Delay, actions: [{name: Timeline Heavy Delay}]}
-  - short_name: Home
-    palette: navigation
-    actions: [{name: Bank Home}]
+    - type: cycle
+      action: Aeros Start
+      values: [1, 127]
+      names: [Start, Stop]
+    - type: scroll
+      actions:
+        - {name: Verse, action: Aeros Part 1}
+        - {name: Chorus, action: Aeros Part 2}
+    - short_name: verse gtr
+    - short_name: solo gtr
+    - type: empty
+    - short_name: Home
+      palette: navigation
+      actions: [{name: Bank Home}]
 
 - name: For What It's Worth
   description: Crosby, Stills, Nash and Young
+  palette: Songs
   actions:
   - {name: Aeros FWIW}
   - {name: Aeros Home, trigger: On Exit Bank}
@@ -438,6 +827,7 @@ banks:
 
 - name: Swirling
   description: The Air Swirls
+  palette: Songs
   actions:
   - {name: Aeros Swirling}
   - {name: Aeros Home, trigger: On Exit Bank}
@@ -448,6 +838,7 @@ banks:
 
 - name: Saints and Martyrs
   description: Thanks to Flannery OConnor
+  palette: Songs
   actions:
   - {name: Aeros Saints and Martyrs}
   - {name: Aeros Home, trigger: On Exit Bank}
@@ -456,6 +847,7 @@ banks:
 
 - name: Prelude in C# Minor
   description: Rachmaninoff
+  palette: Songs
   presets:
   - short_name: "1.1"
     actions:
@@ -464,6 +856,22 @@ banks:
   - short_name: "1.2"
     actions:
       - {name: Iridium Burry Rhythm}
+  - type: empty
+  - type: empty
+  - type: empty
+  - type: empty
   - short_name: Home
     palette: navigation
     actions: [{name: Bank Home}]
+
+- name: No More
+  description: EAD sus4/sus2/m
+  palette: Songs
+  presets:
+    - {short_name: Home, actions: [{name: Bank Home}]}
+
+- name: Sad-Eyed Lady
+  description: of the Lowlife
+  palette: Songs
+  presets:
+    - {short_name: Home, actions: [{name: Bank Home}]}

@@ -1,18 +1,18 @@
-version: 0.3.2
+version: 1.0.0
 midi_channel: 3
 
 midi_channels:
-  - name: Simple device with no messages
-  - name: Device with just messages
-  - name: Device with messages and enable and bypass
+  - name: ''
+  - name: Overdrive
+  - name: Chorus
   - name: Device with initial state
   - name: Delay
   - name: AmpInAPedal
 
 banks:
   - name: Empty Bank
-    text: lightyellow
-    background: red
+    text: orchid
+    background: gray
     messages:
       - {trigger: On Enter Bank - Execute Once Only, type: CC, channel: 4, number: 102, value: 127}
       - {trigger: On Enter Bank - Execute Once Only, type: CC, channel: 4, number: 0, value: 0}
@@ -34,35 +34,35 @@ banks:
           - {type: CC, trigger: Press, channel: 2, number: 0, value: 0}
           - {type: PC, trigger: Press, channel: 2, number: 0}
           - {type: PC, trigger: Press, channel: 3, number: 1}
-      - short_name: Device with initial state Enable
-        toggle_name: Device with initial state Bypass
-        text: white
-        background: red
-        text_toggle: white
-        background_toggle: red
+      - short_name: Device with initial state Bypass
+        toggle_name: Device with initial state Enable
+        text: cadetblue
+        background: steelblue
+        text_toggle: brown
+        background_toggle: cornsilk
         toggle_mode: True
         toggle_group: 4
         messages:
-          - { type: CC, trigger: Press, toggle_state: one, channel: 4, number: 102, value: 127 }
-          - { type: CC, trigger: Press, toggle_state: two, channel: 4, number: 102, value: 0 }
+          - { type: CC, trigger: Press, toggle_state: one, channel: 4, number: 102, value: 0 }
+          - { type: CC, trigger: Press, toggle_state: two, channel: 4, number: 102, value: 127 }
       - short_name: Preset D
-        text: black
-        background: lightyellow
+        text: red
+        background: yellow
         messages:
           - {type: Bank Jump, trigger: Press, bank: 0}
       - short_name: Preset E
-        text: black
-        background: lightyellow
+        text: red
+        background: yellow
         messages:
           - {type: Bank Jump, trigger: Press, bank: 2}
       - short_name: Preset F
-        text: black
-        background: lightyellow
+        text: red
+        background: yellow
         messages:
           - {type: Toggle Page, trigger: Press, page: 1}
       - short_name: Preset G
-        text: black
-        background: lightyellow
+        text: red
+        background: yellow
         messages:
           - {type: Toggle Page, trigger: Press, page: 2}
       - short_name: Preset H
@@ -75,6 +75,9 @@ banks:
           - { type: CC, trigger: Release, channel: 5, number: 0, value: 1 }
           - { type: CC, trigger: Release, channel: 5, number: 0, value: 0 }
           - { type: PC, trigger: Release, channel: 5, number: 101}
+      - short_name: ''
+        background: black
+        text: black
 
     # A bank with action on entry
   - name: Bank with actions
@@ -93,14 +96,16 @@ banks:
           - {type: CC, trigger: Press, channel: 2, number: 0, value: 0}
           - {type: PC, trigger: Press, channel: 2, number: 0}
 
-    # A bank aloowing exploration of an amp-in-a-pedal settings
+    # A bank allowing exploration of an amp-in-a-pedal settings
   - name: AmpInAPedal Exploration
-    description: Demonstrates the cycle preset type, allowing easy exploration of a pedal's capabilities
+    description: Demonstrates the scroll preset type, allowing easy exploration of a pedal's capabilities
     display_description: True
     text: black
     background: lightyellow
     messages:
       - {type: CC, trigger: On Enter Bank, channel: 6, number: 10, value: 1}
+      - {type: CC, trigger: On Enter Bank, channel: 6, number: 10, value: 1}
+      - {type: CC, trigger: On Enter Bank, channel: 6, number: 11, value: 64}
     presets:
       - short_name: Fender
         text: black
@@ -115,6 +120,60 @@ banks:
           - {type: CC, trigger: Release, channel: 6, number: 10, value: 4}
           - {type: Preset Rename, trigger: Release, new_name: Fender}
           - {type: CC, trigger: Release, channel: 6, number: 10, value: 1}
+          - type: Utility
+            utility_type: Manage Preset Scroll
+            manage preset scroll subtype: Set number of messages to scroll
+            preset scroll message count: 2
+            trigger: Press
+          - type: Utility
+            utility_type: Manage Preset Scroll
+            manage preset scroll subtype: Toggle Scroll Direction and Execute
+            trigger: Long Press
+      - short_name: Fender
+        text: black
+        background: lightyellow
+        message_scroll: "On"
+        messages:
+          - {type: Preset Rename, trigger: Release, new_name: Marshall}
+          - {type: CC, trigger: Release, channel: 6, number: 10, value: 2}
+          - {type: Preset Rename, trigger: Release, new_name: Mesa}
+          - {type: CC, trigger: Release, channel: 6, number: 10, value: 3}
+          - {type: Preset Rename, trigger: Release, new_name: Peavey}
+          - {type: CC, trigger: Release, channel: 6, number: 10, value: 4}
+          - {type: Preset Rename, trigger: Release, new_name: Fender}
+          - {type: CC, trigger: Release, channel: 6, number: 10, value: 1}
+          - type: Utility
+            utility_type: Manage Preset Scroll
+            manage preset scroll subtype: Set number of messages to scroll
+            preset scroll message count: 2
+            trigger: Press
+          - type: Utility
+            utility_type: Manage Preset Scroll
+            manage preset scroll subtype: Toggle Scroll Direction and Execute
+            trigger: Long Press
+      - short_name: Drive 1/2
+        text: black
+        background: lightyellow
+        message_scroll: "On"
+        messages:
+          - {type: Preset Rename, trigger: Release, new_name: Drive 5/8}
+          - {type: CC, trigger: Release, channel: 6, number: 11, value: 80}
+          - {type: Preset Rename, trigger: Release, new_name: Drive 3/4}
+          - {type: CC, trigger: Release, channel: 6, number: 11, value: 96}
+          - {type: Preset Rename, trigger: Release, new_name: Drive 7/8}
+          - {type: CC, trigger: Release, channel: 6, number: 11, value: 112}
+          - {type: Preset Rename, trigger: Release, new_name: Drive max}
+          - {type: CC, trigger: Release, channel: 6, number: 11, value: 127}
+          - {type: Preset Rename, trigger: Release, new_name: Drive min}
+          - {type: CC, trigger: Release, channel: 6, number: 11, value: 0}
+          - {type: Preset Rename, trigger: Release, new_name: Drive 1/8}
+          - {type: CC, trigger: Release, channel: 6, number: 11, value: 16}
+          - {type: Preset Rename, trigger: Release, new_name: Drive 1/4}
+          - {type: CC, trigger: Release, channel: 6, number: 11, value: 32}
+          - {type: Preset Rename, trigger: Release, new_name: Drive 3/8}
+          - {type: CC, trigger: Release, channel: 6, number: 11, value: 48}
+          - {type: Preset Rename, trigger: Release, new_name: Drive 1/2}
+          - {type: CC, trigger: Release, channel: 6, number: 11, value: 64}
           - type: Utility
             utility_type: Manage Preset Scroll
             manage preset scroll subtype: Set number of messages to scroll

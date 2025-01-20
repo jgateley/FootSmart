@@ -1,5 +1,5 @@
 system:
-  version: 0.3.2
+  version: 1.0.0
   midi_channel: 3
 
 # No default palette here
