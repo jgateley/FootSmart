@@ -30,7 +30,7 @@ This is my actual config file and shows how I use it.
 
 1. Create a backup of your current configuration in the `Controller Backup` tab, using `All banks (including Controller Settings)`, and keep it somewhere safe.
 2. Create an FootSmart config file, say `myconfig.yaml` or `myconfig.json`.
-3. Convert your FootSmart file to a backup format file: `footsmart.py myconfig.yaml myconfig_backup.json` or `python3 morningstar.py myconfig.yaml myconfig_backup.json`
+3. Convert your FootSmart file to a backup format file: `python3 footsmart.py myconfig.yaml myconfig_backup.json` or `python3 footsmart.py myconfig.json myconfig_backup.json`
 4. Load the `myconfig_backup.json` file via the `Controller Backup` tab.
 5. Restart the controller.
 5. Make changes to the FootSmart file as needed and repeat steps 3 and 4.

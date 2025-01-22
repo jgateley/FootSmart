@@ -37,7 +37,7 @@ palettes:
 - name: General Dark
   text: white
   background: black
-# A experimental color set for banks/presets for experimenting/noodling
+# An experimental color set for banks/presets for experimenting/noodling
 - name: Experimental
   bank_text: lime
   bank_background: black
@@ -65,7 +65,7 @@ palettes:
 # Also, an optional enable and bypass message, and optional groups, and an initial state
 # If the enable/bypass message exists, we create a toggle + MC6Pro group
 # The MC6Pro Group is required because, for example, the H9 has multiple banks with the toggle, and they should be united
-# The groups are a list of groups (different than the MC6Pro group), each group is a set of related messages.
+# The groups are a list of groups (different from the MC6Pro group), each group is a set of related messages.
 # They are a way of doing device presets without actually having a preset stored on the device
 # The initial element is a list of messages to be executed on device startup
 devices:
@@ -315,7 +315,7 @@ devices:
   - name: Aeros
     channel: 6
     messages:
-    # Go to home screen (get rid of a song selected)
+    # Go to the home screen (get rid of a song selected)
     - {name: Home, type: CC, number: 35, value: 2}
     # Bank select for songs. Assuming we won't have more than 128 songs, since there aren't that many banks on the MC6Pro
     - {name: MSB, type: CC, number: 0, value: 0}
@@ -325,7 +325,7 @@ devices:
     - {name: FWIW, type: PC, number: 0, setup: MSB}
     - {name: Swirling, type: PC, number: 1, setup: MSB}
     - {name: Saints and Martyrs, type: PC, number: 2, setup: MSB}
-    - {name: After the Goldrush, type: PC, number: 3, setup: MSB}
+    - {name: After the Gold Rush, type: PC, number: 3, setup: MSB}
     - {name: I'll be Around, type: PC, number: 4, setup: MSB}
     # Transition to a part (1 - 6)
     - {name: Select Part 1, type: CC, number: 113, value: 1}
@@ -719,7 +719,7 @@ banks:
   description: Navigation to Song pages
   palette: Songs Dark
   presets:
-    - {short_name: After the Goldrush, actions: [{name: Bank After the Goldrush}]}
+    - {short_name: After the Gold Rush, actions: [{name: Bank After the Gold Rush}]}
     - {short_name: Record I'll be Around, actions: [{name: Bank I'll be Around}]}
     - {short_name: I'll be Around, actions: [{name: Bank I'll be Around}]}
     - {short_name: For What It's Worth, actions: [{name: Bank For What It's Worth}]}
@@ -736,17 +736,27 @@ banks:
       palette: navigation
       actions: [{name: Bank Home}]
 
-# After the goldrush is a single part, single track
+# After the Gold Rush is a single part, single track
 # The MIDI record capabilities of the Aeros are limited, so I have to record it manually
 # There are three guitar parts:
 #   The rhythm guitar (used for recording)
 #   The lead fill guitar (used during verses)
 #   The lead guitar (for the solo between the second and third verse)
-- name: After the Goldrush
+# Preset A controls the looper, Preset B the guitar
+# Song starts with no looper, guitar on rhythm doing an intro
+# The press Preset A for a 1 count leading to the recorded part
+# At the start of the verse, press Preset B to switch from rhythm to fill guitar
+# Complete verse 1 and 2
+# Press Preset B to switch to lead guitar
+# Complete verse 3 (guitar solo)
+# Press Preset B to switch to fill guitar
+# At the end of the last verse, before the last line, press Preset A to stop the looper immediately (not at EOM)
+# And then press Preset B to switch to the rhythm guitar to do the last line
+- name: After the Gold Rush
   description: Neil Young
   palette: Songs
   actions:
-  - {name: Aeros After the Goldrush}
+  - {name: Aeros After the Gold Rush}
   - {name: Aeros Home, trigger: On Exit Bank}
   presets:
     - type: cycle
@@ -755,14 +765,18 @@ banks:
       names: [Start, Stop]
     - type: scroll
       actions:
+        - name: Rhythm Gtr
+          action: Iridium Clean
         - name: Fill Gtr
           action: Iridium Burry Rhythm
         - name: Lead Gtr
           action: Iridium Distorted Rhythm
+        - name: Fill Gtr
+          action: Iridium Burry Rhythm
+        - name: Rhythm Gtr
+          action: Iridium Clean
     - type: empty
-    # This is used for recording
-    - short_name: Rhythm Gtr
-      actions: [{name: Iridium Clean}]
+    - type: empty
     - type: empty
     - short_name: Home
       palette: navigation
