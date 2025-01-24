@@ -16,6 +16,8 @@ Instead of editing directly through the Morningstar editor, you edit the configu
 
 ## Use
 
+If you use a mac, there is a single executable that you need:
+
 Everything is done via the python app `footsmart.py` and the `Controller Backup` tab on the Morningstar Editor.
 You will need Python3 installed, and the packages `PyYAML` and `semver`.
 You also have the following resources:
