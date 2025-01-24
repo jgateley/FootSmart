@@ -16,10 +16,12 @@ Instead of editing directly through the Morningstar editor, you edit the configu
 
 ## Use
 
-If you use a mac, there is a single executable that you need:
+If you use a mac, there is a single [executable](https://github.com/jgateley/FootSmart/blob/main/dist/footsmart) that you need. 
+Download this file to your computer as `~/footsmart`
 
-Everything is done via the python app `footsmart.py` and the `Controller Backup` tab on the Morningstar Editor.
+If you prefer, or you don't have a mac, then everything is done via the python app `footsmart.py` and the `Controller Backup` tab on the Morningstar Editor.
 You will need Python3 installed, and the packages `PyYAML` and `semver`.
+
 You also have the following resources:
 
 ### Example.yaml
@@ -32,7 +34,7 @@ This is my actual config file and shows how I use it.
 
 1. Create a backup of your current configuration in the `Controller Backup` tab, using `All banks (including Controller Settings)`, and keep it somewhere safe.
 2. Create an FootSmart config file, say `myconfig.yaml` or `myconfig.json`.
-3. Convert your FootSmart file to a backup format file: `python3 footsmart.py myconfig.yaml myconfig_backup.json` or `python3 footsmart.py myconfig.json myconfig_backup.json`
+3. Convert your FootSmart file to a backup format file: `./footsmart myconfig.yaml myconfig_backup.json` or using python: `python3 footsmart.py myconfig.yaml myconfig_backup.json`
 4. Load the `myconfig_backup.json` file via the `Controller Backup` tab.
 5. Restart the controller.
 5. Make changes to the FootSmart file as needed and repeat steps 3 and 4.
