@@ -112,7 +112,9 @@ preset_case_keys = {
     'cycle': [jg.SwitchDict.make_key('action', jg.Atom('action', str, var='action')),
               jg.SwitchDict.make_key('values', jg.List('values', 0, jg.Atom('value', int), var='values')),
               jg.SwitchDict.make_key('names', jg.List('names', 0, jg.Atom('name', str), var='names')),
-              jg.SwitchDict.make_key('prefix', jg.Atom('prefix', str, var='prefix'))],
+              jg.SwitchDict.make_key('prefix', jg.Atom('prefix', str, var='prefix')),
+              jg.SwitchDict.make_key('show', jg.Enum('Show Enum', intuitive_model.show_enum,
+                                                     intuitive_model.show_enum_default, var='show'))],
     'empty': []
 }
 

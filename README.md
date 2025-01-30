@@ -4,7 +4,7 @@ The Morningstar Editor is great software, but requires a lot of manual effort.
 FootSmart is an alternative, configuring your MC6Pro from a YAML (or JSON) configuration file.
 It may work with
 other Morningstar products, but hasn't yet been tested with them.
-- Human editable configuration file (YAML or JSON) can be stored in the cloud or in github
+- Human editable configuration file (YAML or JSON) can be stored in the cloud or in GitHub
 - Named messages allow easy reuse and are more intuitive
 - Named banks, easier to create jump to bank messages
 - Named color palettes allow consistent use of colors in banks and presets
@@ -16,11 +16,7 @@ Instead of editing directly through the Morningstar editor, you edit the configu
 
 ## Use
 
-If you use a mac, there is a single [executable](https://github.com/jgateley/FootSmart/blob/main/dist/footsmart) that you need. 
-Download this file to your computer as `~/footsmart`
-
-If you prefer, or you don't have a mac, then everything is done via the python app `footsmart.py` and the `Controller Backup` tab on the Morningstar Editor.
-You will need Python3 installed, and the packages `PyYAML` and `semver`.
+Installation instructions and general documentation are here: [footsmartapp.com](https://footsmartapp.com/)
 
 You also have the following resources:
 
@@ -37,18 +33,18 @@ This is my actual config file and shows how I use it.
 3. Convert your FootSmart file to a backup format file: `./footsmart myconfig.yaml myconfig_backup.json` or using python: `python3 footsmart.py myconfig.yaml myconfig_backup.json`
 4. Load the `myconfig_backup.json` file via the `Controller Backup` tab.
 5. Restart the controller.
-5. Make changes to the FootSmart file as needed and repeat steps 3 and 4.
+6Make changes to the FootSmart file as needed and repeat steps 3 and 4.
 
 ### Advanced Use
 There is also a _simple_ format, in addition to the backup and FootSmart formats.
-The simple format is a simple version of the backup format, intended to be human readable, but without any of the features of FootSmart.
+The simple format is a simple version of the backup format, intended to be human-readable, but without any of the features of FootSmart.
 It allows you to see exactly what is in your current configuration.
 
 ## Human editable Configuration file
 The MC6Pro backup files are JSON, but are not human editable.
 They are large (over 11MB) and all fields and elements are present, even if empty or not used.
 
-The FootSmart format covers the most common use cases in an easy to use format.
+The FootSmart format covers the most common use cases in an easy-to-use format.
 The top level includes color palettes, devices (including message definitions) and banks.
 
 The FootSmart format only requires values for non-empty fields and elements.
@@ -137,6 +133,11 @@ In this example, choosing a different amp to model is a single CC message (with 
 
 `cycle` presets only work with single CC messages. `scroll` presets only work if each element in the scroll has the same length.
 (A message can be a message group, expanding to multiple messages).
+
+Cycles can also include a`show` option, with value `current` or `next`.
+With `current`, the preset shows what is currently active (and handles the On Bank Entry message to ensure the state is correct).
+With `next`, the preset shows what state will be active after a press. No setup required.
+
 ## Color Palettes
 Color schemas define a set of colors.
 Each set includes many potential targets like `bank_text` or `preset_shifted_text`.

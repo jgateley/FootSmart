@@ -24,6 +24,9 @@ message_type_default = 'None'
 preset_type = ["vanilla", "bypass", "scroll", "cycle", "empty"]
 preset_type_default = "vanilla"
 
+show_enum = ["current", "next"]
+show_enum_default = "current"
+
 
 # Messages
 class PCModel(jg.GrammarModel):
@@ -289,13 +292,15 @@ class PresetModel(jg.GrammarModel):
         self.values = None
         self.names = None
         self.prefix = None
+        self.show = None
 
     # Do not check version in equality
     def __eq__(self, other):
         result = (isinstance(other, PresetModel) and self.type == other.type and
                   self.actions == other.actions and self.short_name == other.short_name and
                   self.device == other.device and self.palette == other.palette and self.action == other.action and
-                  self.values == other.values and self.names == other.names and self.prefix == other.prefix)
+                  self.values == other.values and self.names == other.names and self.prefix == other.prefix and
+                  self.show == other.show)
         if not result:
             self.modified = True
         return result
@@ -313,14 +318,20 @@ class PresetModel(jg.GrammarModel):
             if len(message_template) > 1:
                 raise IntuitiveException('Cycle only supports cycling through single messages')
             message_template = message_template[0]
-            # Now add the bank entry messages
-            bank_messages = [message_template.clone(value=actions_values[0], trigger="On Enter Bank")]
+            # Now add the bank entry messages, but only for show: current cycles
+            if self.show is None:
+                bank_messages = [message_template.clone(value=actions_values[0], trigger="On Enter Bank")]
+            else:
+                bank_messages = []
         else:
             raise IntuitiveException('Unknown scroll type')
 
+        ordered_names = names
+        if scroll_type == 'cycle' and self.show == 'next':
+            ordered_names = names[1:] + names[0:1]
         messages = []
         state_messages_length = None
-        for action_value, name in zip(actions_values, names):
+        for action_value, name in zip(actions_values, ordered_names):
             # Build the rename message
             message = MessageModel()
             message.specific_message = RenamePreset(name)
@@ -339,8 +350,9 @@ class PresetModel(jg.GrammarModel):
                 raise IntuitiveException('state_messages_length does not match state_messages')
             messages += state_messages
         # Now we have the list, but we need to adjust it for the initial state
-        messages_to_move = messages[0:state_messages_length + 1]
-        messages = messages[state_messages_length + 1:] + messages_to_move
+        if scroll_type != 'cycle' or self.show != 'next':
+            messages_to_move = messages[0:state_messages_length + 1]
+            messages = messages[state_messages_length + 1:] + messages_to_move
         # Set the number of messages to scroll
         if state_messages_length > 7:
             msg = "Too many messages to scroll in scroll preset (> 8): " + str(state_messages_length + 1) + "\n"
@@ -370,6 +382,8 @@ class PresetModel(jg.GrammarModel):
         if simple_bank.messages is None:
             simple_bank.messages = []
         simple_bank.messages += bank_messages
+        if not simple_bank.messages:
+            simple_bank.messages = None
         if preset_palette is not None:
             simple_preset.text = preset_palette.preset_text
             simple_preset.background = preset_palette.preset_background
@@ -490,6 +504,8 @@ class BankModel(jg.GrammarModel):
                 if trigger is None:
                     trigger = 'On Enter Bank'
                 simple_model_obj.messages += intuitive_model_obj.action_name_to_simple(action.name, trigger)
+            if not simple_model_obj.messages:
+                simple_model_obj.messages = None
         # Presets
         if self.presets is not None:
             simple_model_obj.presets = []

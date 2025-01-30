@@ -760,6 +760,7 @@ banks:
   - {name: Aeros Home, trigger: On Exit Bank}
   presets:
     - type: cycle
+      show: next
       action: Aeros Start
       values: [1, 127]
       names: [Start, Stop]

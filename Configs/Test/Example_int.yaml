@@ -8,6 +8,7 @@ midi_channels:
   - name: Device with initial state
   - name: Delay
   - name: AmpInAPedal
+  - name: Looper
 
 banks:
   - name: Empty Bank
@@ -174,6 +175,32 @@ banks:
           - {type: CC, trigger: Release, channel: 6, number: 11, value: 48}
           - {type: Preset Rename, trigger: Release, new_name: Drive 1/2}
           - {type: CC, trigger: Release, channel: 6, number: 11, value: 64}
+          - type: Utility
+            utility_type: Manage Preset Scroll
+            manage preset scroll subtype: Set number of messages to scroll
+            preset scroll message count: 2
+            trigger: Press
+          - type: Utility
+            utility_type: Manage Preset Scroll
+            manage preset scroll subtype: Toggle Scroll Direction and Execute
+            trigger: Long Press
+  - name: Looper
+    description: Shows the cycle preset using a looper
+    display_description: True
+    text: black
+    background: lightyellow
+    presets:
+      - short_name: Start
+        text: black
+        background: lightyellow
+        message_scroll: "On"
+        messages:
+          - {type: Preset Rename, trigger: Release, new_name: Playback }
+          - {type: CC, trigger: Release, channel: 7, number: 1, value: 1}
+          - {type: Preset Rename, trigger: Release, new_name: Stop}
+          - {type: CC, trigger: Release, channel: 7, number: 1, value: 2}
+          - {type: Preset Rename, trigger: Release, new_name: Start}
+          - {type: CC, trigger: Release, channel: 7, number: 1, value: 3}
           - type: Utility
             utility_type: Manage Preset Scroll
             manage preset scroll subtype: Set number of messages to scroll

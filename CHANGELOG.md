@@ -1,6 +1,6 @@
 
 # Change Log
-## [1.0.0] - 2025-01-20 NAMM Verson
+## [1.0.0] - 2025-01-30 NAMM Verson
 - Config.yaml: created consistent approach to colors with palettes
 - Config.yaml: more documentation in file
 - Config.yaml: removed unused messages (formerly used in cycle/scrolls)
@@ -11,6 +11,7 @@
 - Fixed enable/bypass bug
 - Clean up README.md
 - Renamed main app footsmart
+- Added show option to cycle presets
 ## [0.4.0] - 2024-12-30
 - Cleaned up Example.yaml
 - scroll preset (formerly cycle presets) presets can now handle more than 1 message, but all must be the same length

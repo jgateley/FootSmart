@@ -114,6 +114,13 @@ devices:
     - {name: Mesa, type: CC, number: 10, value: 3 }
     - {name: Peavey, type: CC, number: 10, value: 4 }
     - {name: Drive, type: CC, number: 11, value: 0 }
+  # A looper pedal, with start loop recording, stop loop recording and begin playback, and stop playback messages
+  - name: Looper
+    channel: 7
+    messages:
+      - {name: Start, type: CC, number: 1, value: 1 }
+      - {name: Playback, type: CC, number: 1, value: 2 }
+      - {name: Stop, type: CC, number: 1, value: 3 }
 
 # Banks - a list of banks
 # Position in the order is preserved
@@ -179,6 +186,8 @@ banks:
       - short_name: Preset A
         actions:
           - name: Overdrive Grungy
+
+  # A bank showing scroll presets
   - name: AmpInAPedal Exploration
     description: Demonstrates the scroll preset type, allowing easy exploration of a pedal's capabilities
     presets:
@@ -204,3 +213,14 @@ banks:
         values: [64, 80, 96, 112, 127, 0, 16, 32, 48]
         names: [1/2, 5/8, 3/4, 7/8, max, min, 1/8, 1/4, 3/8]
         prefix: Drive
+
+  # A bank showing use of a looper pedal
+  # This is different from the above cycle presets in that the display shows the NEXT state, the state after pressing
+  - name: Looper
+    description: Shows the cycle preset using a looper
+    presets:
+      - type: cycle
+        show: next
+        action: Looper Start
+        values: [1, 2, 3]
+        names: [Start, Playback, Stop]
