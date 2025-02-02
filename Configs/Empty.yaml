@@ -1,0 +1,43 @@
+# System
+# The midi_channel is the midi channel of the Morningstar device
+system:
+  version: 1.0.0
+  midi_channel: 3
+
+# Color Palettes
+palettes:
+  # This applies if no palette is explicitly named
+  - {name: default, text: black, background: lightyellow}
+  - name: example
+    # Note that in this bypass palette, the text and background colors will never be used
+    # since all the other colors ARE specified
+    bank_text: aqua
+    bank_background: turquoise
+    preset_text: cadetblue
+    preset_background: steelblue
+    preset_shifted_text: lightsteelblue
+    preset_shifted_background: tan
+    preset_toggle_text: brown
+    preset_toggle_background: cornsilk
+    preset_led: maroon
+    preset_led_shifted: lavender
+    preset_led_toggle: teal
+
+# Devices
+devices:
+  - name: My Device
+    channel: 2
+    messages:
+    - {name: Example CC, type: CC, number: 0, value: 0}
+    - {name: Example PC, type: PC, number: 0, setup: Example CC}
+
+# Banks - a list of banks
+banks:
+  - name: Bank One
+    palette: example
+
+  - name: Bank Two
+    presets:
+      - short_name: Preset A
+        actions:
+          - name: My Device Example PC
