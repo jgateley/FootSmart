@@ -9,6 +9,7 @@ midi_channels:
   - name: Delay
   - name: AmpInAPedal
   - name: Looper
+  - name: TimeLine
 
 banks:
   - name: Empty Bank
@@ -79,6 +80,13 @@ banks:
       - short_name: ''
         background: black
         text: black
+      - short_name: Preset J
+        text: black
+        background: lightyellow
+        messages:
+          - { type: CC, trigger: Press, channel: 8, number: 19, value: 2}
+          - { type: Delay, trigger: Press, delay: 350}
+          - { type: CC, trigger: Press, channel: 8, number: 14, value: 64}
 
     # A bank with action on entry
   - name: Bank with actions

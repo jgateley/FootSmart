@@ -1,11 +1,12 @@
 import copy
 
-import grammar as jg
 import PCCC_message
 import bank_jump_message
+import delay_message
+import grammar as jg
 import preset_rename_message
-import toggle_page_message
 import simple_model
+import toggle_page_message
 import utility_message
 
 # TODO: Messages are a work in progress. The original implementation was not great, there was a long if/then/else
@@ -43,6 +44,14 @@ simple_message_type = ["unused", "PC", "CC", "Note On", "Note Off",
                        # 56
                        'MIDI Clock Tap Menu', 'PC Number Scroll Update', 'CC Value Scroll Update']
 simple_message_default = simple_message_type[0]
+
+bank_message_type = ["unused", "PC", "CC", "Note On", "Note Off",
+                     "Real Time", "Set Toggle", "Select Exp Message", "message8",
+                     "message9", "Delay", "Song Position", "Looper Mode",
+                     "PC Scroll Up", "PC Scroll Down",
+                     "Engage Preset", "Utility", "PC Multichannel", "MIDI Clock", "Relay Switching",
+                     "MIDI MMC", "message21", "message22", "message23", "CC Waveform Generator",
+                     "CC Sequence Generator", "message26", "Toggle Page"]
 
 onoff_type = ["Off", "On"]
 onoff_default = onoff_type[0]
@@ -736,29 +745,6 @@ class MIDIClockTapMenuModel(jg.GrammarModel):
             flags = flags | 2
         flags = flags | 1
         backup_message.msg_array_data[2] = flags
-
-
-class DelayModel(jg.GrammarModel):
-    def __init__(self):
-        super().__init__('DelayModel')
-        self.delay = None
-
-    def __eq__(self, other):
-        result = isinstance(other, DelayModel) and self.delay == other.delay
-        if not result:
-            self.modified = True
-        return result
-
-    def from_backup(self, backup_message):
-        if backup_message.msg_array_data is None or backup_message.msg_array_data[0] is None:
-            self.delay = 0
-        else:
-            self.delay = backup_message.msg_array_data[0] * 10
-        return str(self.delay)
-
-    def to_backup(self, backup_message, _bank_catalog, _simple_bank, _simple_preset):
-        if self.delay is not None:
-            backup_message.msg_array_data[0] = self.delay // 10
 
 
 class RelaySwitchingModel(jg.GrammarModel):
@@ -1728,7 +1714,8 @@ class SimpleMessage(jg.GrammarModel):
                        'Bank Jump': bank_jump_message.BankJumpModel,
                        'Toggle Page': toggle_page_message.TogglePageModel,
                        'Preset Rename': preset_rename_message.PresetRenameModel,
-                       'Utility': utility_message.UtilityModel}
+                       'Utility': utility_message.UtilityModel,
+                       'Delay': delay_message.DelayModel}
 
     @staticmethod
     def make(name, specific_message, ptype, trigger, toggle_state):
@@ -1777,10 +1764,10 @@ class SimpleMessage(jg.GrammarModel):
         return result
 
     # This creates a name out of the MIDI message parameters
-    def from_backup(self, backup_message, backup_bank, banks, trigger_enum):
+    def from_backup(self, backup_message, message_type, backup_bank, banks, trigger_enum):
 
         if backup_message.type is not None:
-            self.type = simple_message_type[backup_message.type]
+            self.type = message_type[backup_message.type]
         else:
             raise IntuitiveException('unimplemented', 'Fix me')
 
@@ -1874,9 +1861,6 @@ class SimpleMessage(jg.GrammarModel):
                 else:
                     self.specific_message = LooperModeModel()
             self.name += self.specific_message.from_backup(backup_message)
-        elif self.type == 'Delay':
-            self.specific_message = DelayModel()
-            self.name += self.specific_message.from_backup(backup_message)
         elif self.type == 'Relay Switching':
             self.specific_message = RelaySwitchingModel()
             self.name += self.specific_message.from_backup(backup_message)
@@ -1889,8 +1873,8 @@ class SimpleMessage(jg.GrammarModel):
         return self.name
 
     # Add the MIDI message directly to the backup message
-    def to_backup(self, backup_message, bank_catalog, simple_bank, simple_preset, trigger_enum):
-        backup_message.type = simple_message_type.index(self.type)
+    def to_backup(self, backup_message, message_type, bank_catalog, simple_bank, simple_preset, trigger_enum):
+        backup_message.type = message_type.index(self.type)
         backup_message.msg_array_data = [None] * 18
         if self.specific_message is not None:
             self.specific_message.to_backup(backup_message, bank_catalog, simple_bank,
@@ -1974,8 +1958,6 @@ transition_message_case_keys = {
                                                            MIDIClockModel.bpm_decimal_default,
                                                            var='bpm_decimal'))],
     'MIDI Clock Tap': [],
-    'Delay': [DelayModel,
-              jg.SwitchDict.make_key('delay', jg.Atom('Delay', int, var='delay'))],
     'Relay Switching': [RelaySwitchingModel,
                         jg.SwitchDict.make_key('relay',
                                                jg.Enum('Relay', RelaySwitchingModel.relay_type,
@@ -1990,9 +1972,6 @@ transition_message_case_keys = {
     'Set MIDI Thru': [MIDIThruModel,
                       jg.SwitchDict.make_key('value',
                                              jg.Enum('Set MIDI Thru', onoff_type, onoff_default, var='value'))],
-    # 'Preset Scroll Message Count': [PresetScrollMessageCountModel,
-    #                                 jg.SwitchDict.make_key('message_count',
-    #                                                        jg.Atom('Message Count', int, var='message_count'))],
     'PC Number Scroll': [PCNumberScrollModel] + PCNumberScrollModel.get_keys(),
     'CC Value Scroll': [CCValueScrollModel] + CCValueScrollModel.get_keys(),
     'PC Number Scroll Update': [PCNumberScrollUpdateModel] + PCNumberScrollUpdateModel.get_keys(),

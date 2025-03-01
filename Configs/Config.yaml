@@ -99,7 +99,7 @@ devices:
    # This first is just used for cycle presets
     - {name: Drive, type: CC, number: 13, value: 0}
     - {name: Clean Drive, type: CC, number: 13, value: 0}
-    - {name: Burry Drive, type: CC, number: 13, value: 80}
+    - {name: Burry Drive, type: CC, number: 13, value: 70}
     - {name: Distorted Drive, type: CC, number: 13, value: 96}
     - {name: Plexi Drive, type: CC, number: 13, value: 127}
     # Bass
@@ -239,29 +239,54 @@ devices:
   # TODO: Some delay types have different/additional configuration parameters
   # TODO: Such as dTape tape speed.
   # TODO: These are not done yet
+  # There are two huge gotchas in the TimeLine:
+  # When you change the delay machine (via MIDI CC 19), all other parameters are read from the pedal knobs.
+  # Thus, this sequence does not have the expected behavior:
+  #    Turn the mix knob all the way to the right (full wet)
+  #    CC 14 64 channel 5 - to set the mix to half wet, half dry
+  #    CC 19 2 channel 5 - to set the delay tye to Digital
+  # Now, I would expect the delay type to be digital and the mix to half/half
+  # However, it is actually delay type digital and the mix is all wet.
+  # I have requested this be changed in future firmware updates, but no idea if it will happen.
+  #
+  # This means when using the TimeLine, when you change the delay type, you must then send all other parameters.
+  #
+  # The second huge gotcha is that when you change the delay type, you must wait 350ms before sending the other parameters
+  # If you send them too quickly, they are ignored
+  # This motivated me to add a 'followup' message (like a setup message but happens afterwards)
+  # and a "Delay" message
   - name: TimeLine
     channel: 5
     enable: {type: CC, number: 102, value: 127}
     bypass: {type: CC, number: 102, value: 0}
     messages:
+      - {name: Sleep, type: Delay, ms: 350}
       # Delay Machines
-      - {name: Digital, type: CC, number: 19, value: 2}
-      - {name: Dual, type: CC, number: 19, value: 3}
-      - {name: Pattern, type: CC, number: 19, value: 4}
-      - {name: Reverse, type: CC, number: 19, value: 5}
-      - {name: Ice, type: CC, number: 19, value: 6}
-      - {name: Duck, type: CC, number: 19, value: 7}
-      - {name: Swell, type: CC, number: 19, value: 8}
-      - {name: Trem, type: CC, number: 19, value: 9}
-      - {name: Filter, type: CC, number: 19, value: 10}
-      - {name: Lo-Fi, type: CC, number: 19, value: 11}
-      - {name: dTape, type: CC, number: 19, value: 0}
-      - {name: dBucket, type: CC, number: 19, value: 1}
+      # Set Machine is only used for cycle, and does not include the sleep
+      - {name: Set Machine, type: CC, number: 19, value: 0}
+      - {name: Digital, type: CC, number: 19, value: 2, followup: Sleep}
+      - {name: Dual, type: CC, number: 19, value: 3, followup: Sleep}
+      - {name: Pattern, type: CC, number: 19, value: 4, followup: Sleep}
+      - {name: Reverse, type: CC, number: 19, value: 5, followup: Sleep}
+      - {name: Ice, type: CC, number: 19, value: 6, followup: Sleep}
+      - {name: Duck, type: CC, number: 19, value: 7, followup: Sleep}
+      - {name: Swell, type: CC, number: 19, value: 8, followup: Sleep}
+      - {name: Trem, type: CC, number: 19, value: 9, followup: Sleep}
+      - {name: Filter, type: CC, number: 19, value: 10, followup: Sleep}
+      - {name: Lo-Fi, type: CC, number: 19, value: 11, followup: Sleep}
+      - {name: dTape, type: CC, number: 19, value: 0, followup: Sleep}
+      - {name: dBucket, type: CC, number: 19, value: 1, followup: Sleep}
       # Time
       # To experiment with the time parameter, the TimeLine should not sync to an external MIDI clock
       - {name: noclock, type: CC, number: 63, value: 0}
       # Turn the external MIDI clock sync back on
       - {name: clock, type: CC, number: 63, value: 1}
+      # Tap Division, or delay rhythm
+      - {name: QuarterNote, type: CC, number: 21, value: 0}
+      - {name: DottedEighthNote, type: CC, number: 21, value: 0}
+      - {name: EighthNote, type: CC, number: 21, value: 0}
+      - {name: Triplets, type: CC, number: 21, value: 0}
+      - {name: Sixteenth, type: CC, number: 21, value: 0}
       # A selection of time values
       - {name: Time 60ms, type: CC, number: 3, value: 0, setup: noclock}     # 60 ms
       - {name: Time 140ms, type: CC, number: 3, value: 16, setup: noclock}    # 140 ms
@@ -391,15 +416,25 @@ banks:
     - short_name: Iridium
       actions: [{name: Bank Iridium}]
       palette: Experimental Dark
-    - short_name: TimeLine
-      actions: [{name: Bank TimeLine}]
+    - short_name: TimeLine Machine
+      actions: [{name: Bank TimeLine Machine}]
       palette: Experimental Dark
     - short_name: H9
       actions: [{name: Bank H9}]
       palette: Experimental Dark
+    - short_name: Next
+      palette: navigation
+      actions: [{name: Next Page}]
     - short_name: Songs
       actions: [{name: Bank Songs}]
       palette: Songs Dark
+    - type: empty
+    - type: empty
+    - type: empty
+    - type: empty
+    - short_name: Prev
+      palette: navigation
+      actions: [{name: Previous Page}]
 
 # The bypass bank allows enabling/bypassing devices in one convenient location
 - name: Bypass
@@ -523,15 +558,34 @@ banks:
       actions: [{name: Previous Page}]
 
 # Explore the TimeLine settings
-- name: TimeLine
+# We have to use one bank to set the delay machine
+# After setting the delay machine, there must be a pause of 350ms before the next CC to the timeline,
+# or it is ignored.
+# For most uses, that delay is built in to the message.
+# But for here, we just set the machine, and rely on it being more than half a second to switch to the
+# parameters bank
+- name: TimeLine Machine
   description: Exploring the TimeLine
   palette: Experimental
   presets:
   # Delay Type
   - type: cycle
-    action: TimeLine Digital
+    action: TimeLine Set Machine
     values: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1]
     names: [Digital, Dual, Pattern, Reverse, Ice, Duck, Swell, Trem, Filter, Lo-Fi, dTape, dBucket]
+  - type: empty
+  - type: empty
+  - type: empty
+  - type: empty
+  - short_name: Parameters
+    palette: navigation
+    actions: [{name: Bank TimeLine Parameters}]
+
+# Explore the TimeLine settings
+- name: TimeLine Parameters
+  description: Exploring the TimeLine
+  palette: Experimental
+  presets:
   # This one cannot be a cycle, as the action expands into multiple messages.
   # It could be fixed, since the CC is the last message, maybe some day
   # Delay Time
@@ -558,10 +612,6 @@ banks:
     values: [64, 80, 96, 112, 127, 0, 16, 32, 48]
     names: [1/2, 5/8, 3/4, 7/8, wet, dry, 1/8, 1/4, 3/8]
     prefix: Mix
-  - type: empty
-  - short_name: More/Home
-    palette: navigation
-    actions: [{name: Next Page}, {name: Bank Home, trigger: Long Press}]
   # Delay Filter Parameter
   - type: cycle
     action: TimeLine PFilter
@@ -574,6 +624,9 @@ banks:
     values: [80, 96, 112, 127, 0, 16, 32, 48, 64]
     names: [5/8, 3/4, 7/8, wet, dry, 1/8, 1/4, 3/8, 1/2]
     prefix: Grit
+  - short_name: More/Home
+    palette: navigation
+    actions: [{name: Next Page}, {name: Bank Home, trigger: Long Press}]
   # Delay Speed
   - type: cycle
     action: TimeLine Speed
@@ -592,21 +645,15 @@ banks:
     values: [6, 8, 10, 12, 14, 16, 18, 0, 2, 4]
     names: ["6", "8", "10", "12", "14", "16", "18", "0", "2", "4"]
     prefix: Smear
-  - short_name: Previous
-    palette: navigation
-    actions: [{name: Previous Page}, {name: Next Page, trigger: Long Press}]
   # Delay High Pass Filter
   - type: cycle
     action: TimeLine High Pass
     values: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
     names: ["0", "2", "4", "6", "8", "10", "12", "14", "16", "18", "20"]
   - type: empty
-  - type: empty
-  - type: empty
-  - type: empty
   - short_name: Previous
     palette: navigation
-    actions: [{name: Previous Page}, {name: Next Page, trigger: Long Press}]
+    actions: [{name: Previous Page}]
 
 # The H9 is complex, allowing many different effects
 # This bank is a navigation bank, getting you to a particular effect on the H9
@@ -758,6 +805,12 @@ banks:
   actions:
   - {name: Aeros After the Gold Rush}
   - {name: Aeros Home, trigger: On Exit Bank}
+  - {name: TimeLine Digital}
+  - {name: TimeLine clock}
+  - {name: TimeLine EighthNote}
+  - {name: TimeLine Time 780ms}
+  - {name: TimeLine Repeats Default}
+  - {name: TimeLine Mix 50-50}
   presets:
     - type: cycle
       show: next

@@ -121,7 +121,7 @@ class SimplePreset(jg.GrammarModel):
             for pos, backup_message in enumerate(backup_preset.messages):
                 if backup_message is not None:
                     self.messages[pos] = sm.SimpleMessage()
-                    self.messages[pos].from_backup(backup_message, backup_bank, bank_catalog,
+                    self.messages[pos].from_backup(backup_message, sm.simple_message_type, backup_bank, bank_catalog,
                                                    preset_message_trigger)
             jg.prune_list(self.messages)
 
@@ -152,7 +152,7 @@ class SimplePreset(jg.GrammarModel):
             for pos, message in enumerate(self.messages):
                 if message is not None:
                     backup_message = backup_model.MidiMessage()
-                    message.to_backup(backup_message, bank_catalog, simple_bank, self,
+                    message.to_backup(backup_message, sm.simple_message_type, bank_catalog, simple_bank, self,
                                       preset_message_trigger)
                     backup_preset.set_message(backup_message, pos)
         return backup_preset
@@ -202,7 +202,7 @@ class SimpleBank(jg.GrammarModel):
                     self.messages[pos] = sm.SimpleMessage()
                     if backup_message.trigger != 1:
                         self.messages[pos].trigger = bank_message_trigger[backup_message.trigger]
-                    self.messages[pos].from_backup(backup_message, backup_bank, bank_catalog,
+                    self.messages[pos].from_backup(backup_message, sm.bank_message_type, backup_bank, bank_catalog,
                                                    bank_message_trigger)
             jg.prune_list(self.messages)
         if backup_bank.presets is not None:
@@ -234,7 +234,8 @@ class SimpleBank(jg.GrammarModel):
             for pos, message in enumerate(self.messages):
                 if message is not None:
                     backup_message = backup_model.MidiMessage()
-                    message.to_backup(backup_message, bank_catalog, self, None, bank_message_trigger)
+                    message.to_backup(backup_message, sm.bank_message_type, bank_catalog, self, None,
+                                      bank_message_trigger)
                     backup_bank.set_message(backup_message, pos)
         if self.presets is not None:
             for pos, preset in enumerate(self.presets):

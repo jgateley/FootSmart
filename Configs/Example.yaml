@@ -121,6 +121,13 @@ devices:
       - {name: Start, type: CC, number: 1, value: 1 }
       - {name: Playback, type: CC, number: 1, value: 2 }
       - {name: Stop, type: CC, number: 1, value: 3 }
+  # A device requiring a time delay between CC messages
+  - name: TimeLine
+    channel: 8
+    messages:
+      - {name: Sleep, type: Delay, ms: 350}
+      - {name: Digital, type: CC, number: 19, value: 2, followup: Sleep}
+      - {name: Mix 50-50, type: CC, number: 14, value: 64}
 
 # Banks - a list of banks
 # Position in the order is preserved
@@ -176,6 +183,11 @@ banks:
             trigger: Release
       # An empty preset, used for spacing
       - type: empty
+      # A preset showing the delay and followup
+      - short_name: Preset J
+        actions:
+          - name: TimeLine Digital
+          - name: TimeLine Mix 50-50
   # Bank Actions Example
   - name: Bank with actions
     actions:

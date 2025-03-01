@@ -1,6 +1,6 @@
 
 # Change Log
-## [1.0.0] - 2025-01-30 NAMM Verson
+## [1.0.0] - 2025-01-30 NAMM Version
 - Config.yaml: created consistent approach to colors with palettes
 - Config.yaml: more documentation in file
 - Config.yaml: removed unused messages (formerly used in cycle/scrolls)
@@ -12,6 +12,9 @@
 - Clean up README.md
 - Renamed main app footsmart
 - Added show option to cycle presets
+- Added Delay message
+- Added followup modifier (like setup, but after)
+- Fixed bug: bank messages have different names/number pairs than preset messages
 ## [0.4.0] - 2024-12-30
 - Cleaned up Example.yaml
 - scroll preset (formerly cycle presets) presets can now handle more than 1 message, but all must be the same length
@@ -25,7 +28,7 @@
 ## [0.3.1] - 2024-11-5
 - Major refactor.
 - Intuitive is now based on use cases, not many features
-- Simple is now a human readable version of the backup file
+- Simple is now a human-readable version of the backup file
 - Renamed JsonGrammar to Grammar, NFC
 - Renamed base/grammar to backup, NFC
 - Renamed intuitive to simple, NFC

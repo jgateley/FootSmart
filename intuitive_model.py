@@ -9,6 +9,7 @@ import bank_jump_message
 import toggle_page_message
 import PCCC_message
 import preset_rename_message
+import delay_message
 import utility_message
 import simple_message as sm
 import simple_grammar
@@ -18,7 +19,7 @@ import simple_model
 # Convert Devices to simple format:
 # * The MIDI channel is created (right now just a name)
 
-message_type = ['None', 'PC', 'CC']
+message_type = ['None', 'PC', 'CC', 'Delay']
 message_type_default = 'None'
 
 preset_type = ["vanilla", "bypass", "scroll", "cycle", "empty"]
@@ -60,6 +61,22 @@ class CCModel(jg.GrammarModel):
 
     def build(self, channel):
         return PCCC_message.CCModel.make(self.number, self.value, channel)
+
+
+class DelayModel(jg.GrammarModel):
+    def __init__(self):
+        super().__init__('DelayModel')
+        self.delay = None
+
+    # Do not check version in equality
+    def __eq__(self, other):
+        result = (isinstance(other, CCModel) and self.delay == other.delay)
+        if not result:
+            self.modified = True
+        return result
+
+    def build(self, _channel):
+        return delay_message.DelayModel.make(self.delay)
 
 
 class GotoBank:
@@ -141,13 +158,15 @@ class MessageModel(jg.GrammarModel):
         self.type = None
         self.name = None
         self.setup = None
+        self.followup = None
         self.specific_message = None
         self.channel = None
 
     # Do not check version in equality
     def __eq__(self, other):
         result = (isinstance(other, MessageModel) and self.type == other.type and self.name == other.name and
-                  self.setup == other.setup and self.specific_message == other.specific_message)
+                  self.setup == other.setup and self.followup == other.followup and
+                  self.specific_message == other.specific_message)
         if not result:
             self.modified = True
         return result
@@ -158,6 +177,8 @@ class MessageModel(jg.GrammarModel):
         self.name = prefix + ' ' + self.name
         if self.setup is not None:
             self.setup = prefix + ' ' + self.setup
+        if self.followup is not None:
+            self.followup = prefix + ' ' + self.followup
         self.channel = channel
         intuitive_object.add_message(self.name, self)
 
@@ -393,8 +414,6 @@ class PresetModel(jg.GrammarModel):
     # use the preset palette if present, otherwise use the bank palette
     def to_simple(self, intuitive_model_obj, simple_bank, bank_palette):
         preset_palette = intuitive_model_obj.palettes_obj.lookup_palette(self.palette, bank_palette)
-        if preset_palette is None:
-            preset_palette = bank_palette
         if self.type == 'bypass':
             # short name : Enabled
             # Toggle name : Disabled
@@ -561,6 +580,8 @@ class Intuitive(jg.GrammarModel):
             if action.setup is not None:
                 result = self.action_name_to_simple(action.setup, trigger, toggle_state, new_seen)
             result += [action.to_simple(trigger, toggle_state)]
+            if action.followup is not None:
+                result += self.action_name_to_simple(action.followup, trigger, toggle_state, new_seen)
         return result
 
     def build_midi_channels(self, simple_model_obj):

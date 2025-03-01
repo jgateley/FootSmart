@@ -47,14 +47,15 @@ message_switch_key = jg.SwitchDict.make_key('type',
                                             jg.Enum('Type', intuitive_model.message_type,
                                                     intuitive_model.message_type_default, var='type'))
 message_common_keys = [jg.SwitchDict.make_key('name', jg.Atom('Name', str, '', var='name')),
-                       jg.SwitchDict.make_key('setup', jg.Atom('Setup', str, '', var='setup'))]
+                       jg.SwitchDict.make_key('setup', jg.Atom('Setup', str, '', var='setup')),
+                       jg.SwitchDict.make_key('followup', jg.Atom('Followup', str, '', var='followup'))]
 message_case_keys = {'PC': [intuitive_model.PCModel,
-                            jg.SwitchDict.make_key('number', jg.Atom('Number', int, var='number')),
-                            jg.SwitchDict.make_key('channel', jg.Atom('Channel', str, var='channel'))],
+                            jg.SwitchDict.make_key('number', jg.Atom('Number', int, var='number'))],
                      'CC': [intuitive_model.CCModel,
                             jg.SwitchDict.make_key('number', jg.Atom('Number', int, var='number')),
-                            jg.SwitchDict.make_key('value', jg.Atom('Value', int, var='value')),
-                            jg.SwitchDict.make_key('channel', jg.Atom('Channel', str, var='channel'))]}
+                            jg.SwitchDict.make_key('value', jg.Atom('Value', int, var='value'))],
+                     'Delay': [intuitive_model.DelayModel,
+                               jg.SwitchDict.make_key('ms', jg.Atom('ms', int, var='delay'))]}
 
 
 def make_message_schema(var=None):
@@ -69,8 +70,8 @@ device_group_schema = jg.Dict('device group',
                               model=intuitive_model.DeviceGroupModel)
 
 device_schema = jg.Dict('device',
-                        [jg.Dict.make_key('name', jg.Atom('name', str, var='name')),
-                         jg.Dict.make_key('channel', jg.Atom('channel', int, var='channel')),
+                        [jg.Dict.make_key('name', jg.Atom('name', str, var='name'), required=True),
+                         jg.Dict.make_key('channel', jg.Atom('channel', int, var='channel'), required=True),
                          jg.Dict.make_key('messages', jg.List('messages', 0,
                                                               make_message_schema(), var='messages')),
                          jg.Dict.make_key('enable', make_message_schema('enable_message')),
