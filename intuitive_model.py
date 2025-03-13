@@ -11,6 +11,7 @@ import PCCC_message
 import preset_rename_message
 import delay_message
 import utility_message
+import engage_preset_message
 import simple_message as sm
 import simple_grammar
 import simple_model
@@ -76,7 +77,7 @@ class DelayModel(jg.GrammarModel):
         return result
 
     def build(self, _channel):
-        return delay_message.DelayModel.make(self.delay)
+        return delay_message.DelayModel.build(self.delay)
 
 
 class GotoBank:
@@ -152,6 +153,24 @@ class ScrollReverseDirection:
         return utility_message.UtilityModel.build_manage_preset_scroll(None, True)
 
 
+class EngagePresetModel(jg.GrammarModel):
+    def __init__(self, number_banks, preset_number):
+        super().__init__('EngagePresetModel')
+        self.bank_number = number_banks
+        self.bank_number += preset_number // 24
+        self.preset_number = preset_number % 24
+
+    # Do not check version in equality
+    def __eq__(self, other):
+        result = (isinstance(other, CCModel) and self.preset_number == other.preset_number)
+        if not result:
+            self.modified = True
+        return result
+
+    def build(self, _channel):
+        return engage_preset_message.EngagePresetModel.build(self.bank_number, self.preset_number, None)
+
+
 class MessageModel(jg.GrammarModel):
     def __init__(self):
         super().__init__('MessageModel')
@@ -205,7 +224,13 @@ class DeviceGroupModel(jg.GrammarModel):
         self.name = prefix + ' ' + self.name
         for pos in range(len(self.messages)):
             self.messages[pos] = prefix + ' ' + self.messages[pos]
-        intuitive_object.add_message(self.name, self)
+        self.messages = [self.name] + self.messages
+        preset_number = intuitive_object.add_engage_preset(self.messages)
+        engage_preset = EngagePresetModel(len(intuitive_object.banks), preset_number)
+        message = MessageModel()
+        message.type = "Engage Preset"
+        message.specific_message = engage_preset
+        intuitive_object.add_message(self.name, message)
 
 
 # MIDI Devices
@@ -337,7 +362,7 @@ class PresetModel(jg.GrammarModel):
         elif scroll_type == 'cycle':
             message_template = intuitive_model_obj.action_name_to_simple(self.action, "Release")
             if len(message_template) > 1:
-                raise IntuitiveException('Cycle only supports cycling through single messages')
+                raise IntuitiveException('single message', 'Cycle only supports cycling through single messages')
             message_template = message_template[0]
             # Now add the bank entry messages, but only for show: current cycles
             if self.show is None:
@@ -543,6 +568,7 @@ class Intuitive(jg.GrammarModel):
         # Non grammar variables appear here
         self.midi_channels = None
         self.message_catalogue = None
+        self.engage_presets = None
         # This is required for the toggle group, which is the same as the midi channel
         self.midi_channel_catalogue = None
         self.palettes_obj = None
@@ -562,6 +588,11 @@ class Intuitive(jg.GrammarModel):
             raise IntuitiveException('multiply-defined-message', "Message already exists: " + name)
         self.message_catalogue[name] = message
 
+    def add_engage_preset(self, messages):
+        preset_number = len(self.engage_presets)
+        self.engage_presets.append(messages)
+        return preset_number
+
     def action_name_to_simple(self, action_name, trigger=None, toggle_state=None, seen=None):
         if seen is None:
             seen = []
@@ -573,9 +604,8 @@ class Intuitive(jg.GrammarModel):
             raise IntuitiveException('action name not found', msg)
         action = self.message_catalogue[action_name]
         result = []
-        if isinstance(action, DeviceGroupModel):
-            for message in action.messages:
-                result += self.action_name_to_simple(message, trigger, toggle_state, new_seen)
+        if isinstance(action, EngagePresetModel):
+            result += [action.to_simple(trigger, toggle_state)]
         else:
             if action.setup is not None:
                 result = self.action_name_to_simple(action.setup, trigger, toggle_state, new_seen)
@@ -621,6 +651,31 @@ class Intuitive(jg.GrammarModel):
             for device in self.devices:
                 device.add_startup_actions(bank0, self)
 
+    @staticmethod
+    def make_engage_preset_bank():
+        bank = BankModel()
+        bank.name = "FootSmart Internal"
+        bank.presets = []
+        return bank
+
+    def add_engage_presets(self):
+        if len(self.engage_presets) == 0:
+            return
+        bank = self.make_engage_preset_bank()
+        self.banks.append(bank)
+        for engage_preset in self.engage_presets:
+            if len(bank.presets) >= 24:
+                raise IntuitiveException('Not Implemented', 'Not Implemented')
+            preset = PresetModel()
+            preset.short_name = engage_preset[0]
+            preset.actions = []
+            for action in engage_preset[1:]:
+                preset_action = PresetActionModel()
+                preset_action.name = action
+                preset_action.trigger = 'No Action'
+                preset.actions.append(preset_action)
+            bank.presets.append(preset)
+
     def to_simple(self):
         simple_model_obj = simple_model.Simple()
         self.palettes_obj = colors.Palettes(self.palettes)
@@ -628,6 +683,7 @@ class Intuitive(jg.GrammarModel):
         # TODO: pass the Intuitive object all the way down, instead of switching to a parameter half way
         self.message_catalogue = {}
         self.midi_channel_catalogue = {}
+        self.engage_presets = []
 
         # Add the next/previous page messages
         self.build_page_messages()
@@ -640,6 +696,9 @@ class Intuitive(jg.GrammarModel):
 
         # Add device messages to the message catalogue
         self.build_device_messages()
+
+        # Add the engage_preset banks
+        self.add_engage_presets()
 
         # Convert banks
         simple_model_obj.banks = []

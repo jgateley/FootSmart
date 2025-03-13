@@ -71,12 +71,8 @@ banks:
         text: black
         background: lightyellow
         messages:
-          - { type: CC, trigger: Press, channel: 5, number: 0, value: 0 }
-          - { type: CC, trigger: Press, channel: 5, number: 0, value: 0 }
-          - { type: PC, trigger: Press, channel: 5, number: 100}
-          - { type: CC, trigger: Release, channel: 5, number: 0, value: 1 }
-          - { type: CC, trigger: Release, channel: 5, number: 0, value: 0 }
-          - { type: PC, trigger: Release, channel: 5, number: 101}
+          - { type: Engage Preset, trigger: Press, bank: 5, preset: 0 }
+          - { type: Engage Preset, trigger: Release, bank: 5, preset: 1 }
       - short_name: ''
         background: black
         text: black
@@ -218,3 +214,22 @@ banks:
             utility_type: Manage Preset Scroll
             manage preset scroll subtype: Toggle Scroll Direction and Execute
             trigger: Long Press
+  - name: FootSmart Internal
+    text: black
+    background: lightyellow
+    presets:
+      - short_name: Delay Group 1
+        text: black
+        background: lightyellow
+        messages:
+          - { trigger: No Action, type: CC, channel: 5, number: 0, value: 0 }
+          - { trigger: No Action, type: CC, channel: 5, number: 0, value: 0 }
+          - { trigger: No Action, type: PC, channel: 5, number: 100 }
+      - short_name: Delay Group 2
+        text: black
+        background: lightyellow
+        messages:
+          - { trigger: No Action, type: CC, channel: 5, number: 0, value: 1 }
+          - { trigger: No Action, type: CC, channel: 5, number: 0, value: 0 }
+          - { trigger: No Action, type: PC, channel: 5, number: 101 }
+

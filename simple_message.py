@@ -8,6 +8,7 @@ import preset_rename_message
 import simple_model
 import toggle_page_message
 import utility_message
+import engage_preset_message
 
 # TODO: Messages are a work in progress. The original implementation was not great, there was a long if/then/else
 # TODO: chain in from_backup.
@@ -1265,56 +1266,6 @@ class StartSequenceNoMIDIClockModel(WaveformSequenceBaseModel):
         self.to_backup_engine(backup_message)
 
 
-# TODO: use bank number instead of bank name
-class EngagePresetModel(jg.GrammarModel):
-    engage_preset_action = ["No Action", "Press", "Release", "Long Press", "Long Press Scroll", "Long Press Release",
-                            "Release All", "Double Tap", "Double Tap Release", "Long Double Tap",
-                            "Long Double Tap Release"]
-    engage_preset_action_default = engage_preset_action[0]
-
-    def __init__(self):
-        super().__init__('EngagePresetModel')
-        self.bank = None
-        self.preset = None
-        self.action = None
-
-    def __eq__(self, other):
-        result = isinstance(other, EngagePresetModel) and self.bank == other.bank and self.preset == other.preset
-        result = result and self.action == other.action
-        if not result:
-            self.modified = True
-        return result
-
-    def from_backup(self, banks, backup_message):
-        if backup_message.msg_array_data is None:
-            self.bank = banks[0]
-            self.preset = 'A'
-            self.action = EngagePresetModel.engage_preset_action_default
-        else:
-            if backup_message.msg_array_data[0] is None:
-                self.bank = banks[0]
-            else:
-                self.bank = banks[backup_message.msg_array_data[0]]
-            if backup_message.msg_array_data[1] is None:
-                self.preset = 'A'
-            else:
-                self.preset = chr(backup_message.msg_array_data[1])
-            if backup_message.msg_array_data[2] is None:
-                self.action = simple_model.preset_message_trigger[0]
-            else:
-                self.action = simple_model.preset_message_trigger[backup_message.msg_array_data[2]]
-        return self.bank + ':' + self.preset + ':' + self.action
-
-    def to_backup(self, backup_message, bank_catalog, _simple_bank, _simple_preset):
-        bank_number = bank_catalog[self.bank]
-        if bank_number != 0:
-            backup_message.msg_array_data[0] = bank_number
-        if self.preset != 'A':
-            backup_message.msg_array_data[1] = ord(self.preset)
-        if self.action != simple_model.preset_message_trigger_default:
-            backup_message.msg_array_data[2] = simple_model.preset_message_trigger.index(self.action)
-
-
 # TODO: Can we get rid of simple bank?
 class SetToggleModel(jg.GrammarModel):
     preset_mapping = [[0, 0x1],   # 0, A
@@ -1715,7 +1666,8 @@ class SimpleMessage(jg.GrammarModel):
                        'Toggle Page': toggle_page_message.TogglePageModel,
                        'Preset Rename': preset_rename_message.PresetRenameModel,
                        'Utility': utility_message.UtilityModel,
-                       'Delay': delay_message.DelayModel}
+                       'Delay': delay_message.DelayModel,
+                       'Engage Preset': engage_preset_message.EngagePresetModel}
 
     @staticmethod
     def make(name, specific_message, ptype, trigger, toggle_state):
@@ -1723,7 +1675,8 @@ class SimpleMessage(jg.GrammarModel):
         result.name = name
         result.type = ptype
         result.specific_message = specific_message
-        result.trigger = trigger
+        if trigger != 'No Action':
+            result.trigger = trigger
         result.toggle_state = toggle_state
         return result
 
@@ -1764,7 +1717,7 @@ class SimpleMessage(jg.GrammarModel):
         return result
 
     # This creates a name out of the MIDI message parameters
-    def from_backup(self, backup_message, message_type, backup_bank, banks, trigger_enum):
+    def from_backup(self, backup_message, message_type, backup_bank, _banks, trigger_enum):
 
         if backup_message.type is not None:
             self.type = message_type[backup_message.type]
@@ -1827,9 +1780,6 @@ class SimpleMessage(jg.GrammarModel):
                 if channel is None:
                     channel = 1
                 self.name += self.specific_message.from_backup(backup_message, channel)
-        elif self.type == 'Engage Preset':
-            self.specific_message = EngagePresetModel()
-            self.name += self.specific_message.from_backup(banks, backup_message)
         elif self.type == 'Trigger Messages':
             self.specific_message = TriggerMessagesModel()
             self.name += self.specific_message.from_backup(backup_message, backup_bank)
@@ -1987,13 +1937,6 @@ transition_message_case_keys = {
         [StartWaveformNoMIDIClockModel] + StartWaveformNoMIDIClockModel.get_keys(),
     'Start CC Sequence Generator No MIDI Clock':
         [StartSequenceNoMIDIClockModel] + StartSequenceNoMIDIClockModel.get_keys(),
-    'Engage Preset': [EngagePresetModel,
-                      jg.SwitchDict.make_key('bank', jg.Atom('Bank', str, var='bank')),
-                      jg.SwitchDict.make_key('preset', jg.Atom('Preset', str, var='preset')),
-                      jg.SwitchDict.make_key('Action',
-                                             jg.Enum('Action', EngagePresetModel.engage_preset_action,
-                                                     EngagePresetModel.engage_preset_action_default,
-                                                     var='action'))],
     'Toggle Preset': [],
     'Set Toggle': [SetToggleModel,
                    jg.SwitchDict.make_key('position',

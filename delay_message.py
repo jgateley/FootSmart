@@ -14,12 +14,6 @@ class DelayModel(jg.GrammarModel):
         return result
 
     @staticmethod
-    def make(delay_ms):
-        result = DelayModel()
-        result.delay = delay_ms
-        return result
-
-    @staticmethod
     def get_case_keys(_intuitive=False):
         return [DelayModel,
                 jg.SwitchDict.make_key('delay', jg.Atom('Delay', int, var='delay'))]
