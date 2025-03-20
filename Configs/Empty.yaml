@@ -1,7 +1,7 @@
 # System
 # The midi_channel is the midi channel of the Morningstar device
 system:
-  version: 1.0.0
+  version: 1.1.0
   midi_channel: 3
 
 # Color Palettes

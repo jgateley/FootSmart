@@ -1,6 +1,8 @@
 
 # Change Log
-## [1.0.1] - 2025-01-30 NAMM Version
+## [1.1.0]
+- Added controller/global settings for messages, groups, and initializing
+## [1.0.1] - 2025-03-13
 - All group messages now use engage preset, and a bank at the end
 ## [1.0.0] - 2025-01-30 NAMM Version
 - Config.yaml: created consistent approach to colors with palettes

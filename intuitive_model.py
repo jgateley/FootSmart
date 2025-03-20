@@ -171,6 +171,15 @@ class EngagePresetModel(jg.GrammarModel):
         return engage_preset_message.EngagePresetModel.build(self.bank_number, self.preset_number, None)
 
 
+class ScopedName:
+    def __init__(self, device, name):
+        self.device = device
+        self.name = name
+
+    def __eq__(self, other):
+        return isinstance(other, ScopedName) and self.name == other.name and self.device == other.device
+
+
 class MessageModel(jg.GrammarModel):
     def __init__(self):
         super().__init__('MessageModel')
@@ -191,14 +200,16 @@ class MessageModel(jg.GrammarModel):
         return result
 
     def build(self, intuitive_object, prefix, channel, name=None):
-        if name is not None:
-            self.name = name
-        self.name = prefix + ' ' + self.name
-        if self.setup is not None:
-            self.setup = prefix + ' ' + self.setup
-        if self.followup is not None:
-            self.followup = prefix + ' ' + self.followup
-        self.channel = channel
+        # The prefix is not valid if there is no channel (it is the "shared" settings in that case)
+        if channel is not None:
+            if name is not None:
+                self.name = name
+            self.name = prefix + ' ' + self.name
+            if self.setup is not None:
+                self.setup = ScopedName(prefix, self.setup)
+            if self.followup is not None:
+                self.followup = ScopedName(prefix, self.followup)
+            self.channel = channel
         intuitive_object.add_message(self.name, self)
 
     def to_simple(self, trigger, toggle_state):
@@ -221,9 +232,10 @@ class DeviceGroupModel(jg.GrammarModel):
         return result
 
     def build(self, intuitive_object, prefix):
-        self.name = prefix + ' ' + self.name
-        for pos in range(len(self.messages)):
-            self.messages[pos] = prefix + ' ' + self.messages[pos]
+        if prefix is not None:
+            self.name = prefix + ' ' + self.name
+            for pos in range(len(self.messages)):
+                self.messages[pos] = ScopedName(prefix, self.messages[pos])
         self.messages = [self.name] + self.messages
         preset_number = intuitive_object.add_engage_preset(self.messages)
         engage_preset = EngagePresetModel(len(intuitive_object.banks), preset_number)
@@ -271,17 +283,16 @@ class DeviceModel(jg.GrammarModel):
             for group in self.groups:
                 group.build(intuitive_object, self.name)
 
+    def has_startup_actions(self):
+        return self.initial is not None
+
     def add_startup_actions(self, bank0, intuitive_object):
         # Add device startup actions
         if self.initial is not None:
-            if bank0 is None:
-                raise IntuitiveException('need-bank-0', 'Bank 0 required for initial messages')
-            if bank0.messages is None:
-                bank0.messages = []
             for message in self.initial:
-                message_name = self.name + ' ' + message
-                bank0.messages += intuitive_object.action_name_to_simple(message_name,
-                                                                         "On Enter Bank - Execute Once Only")
+                message_name = ScopedName(self.name, message)
+                bank0.add_message(intuitive_object.action_name_to_simple(message_name,
+                                                                         "On Enter Bank - Execute Once Only"))
 
 
 # Preset Actions
@@ -563,6 +574,7 @@ class Intuitive(jg.GrammarModel):
         super().__init__('Intuitive')
         self.midi_channel = None
         self.palettes = None
+        self.shared = None
         self.devices = None
         self.banks = None
         # Non grammar variables appear here
@@ -577,6 +589,7 @@ class Intuitive(jg.GrammarModel):
     def __eq__(self, other):
         result = (isinstance(other, Intuitive) and self.midi_channel == other.midi_channel and
                   self.palettes == other.palettes and
+                  self.shared == other.shared and
                   self.devices == other.devices and
                   self.banks == other.banks)
         if not result:
@@ -596,12 +609,22 @@ class Intuitive(jg.GrammarModel):
     def action_name_to_simple(self, action_name, trigger=None, toggle_state=None, seen=None):
         if seen is None:
             seen = []
+        if isinstance(action_name, ScopedName):
+            # First try the device name, then the shared name
+            if action_name.device + ' ' + action_name.name in self.message_catalogue:
+                action_name = action_name.device + ' ' + action_name.name
+            elif action_name.name in self.message_catalogue:
+                action_name = action_name.name
+            else:
+                msg = ('The action named ' + action_name.name + ', possibly in the device ' + action_name.device +
+                       ', is not defined')
+                raise IntuitiveException('action name not found', msg)
+        elif action_name not in self.message_catalogue:
+            msg = 'The action named ' + action_name + ' is not defined'
+            raise IntuitiveException('action name not found', msg)
         if action_name in seen:
             raise IntuitiveException('loop detected')
         new_seen = seen + [action_name]
-        if action_name not in self.message_catalogue:
-            msg = 'The action named ' + action_name + ' is not defined'
-            raise IntuitiveException('action name not found', msg)
         action = self.message_catalogue[action_name]
         result = []
         if isinstance(action, EngagePresetModel):
@@ -641,10 +664,35 @@ class Intuitive(jg.GrammarModel):
                 message.type = 'Bank Jump'
                 self.add_message('Bank ' + bank.name, message)
 
+    def build_shared_messages(self):
+        if self.shared is not None:
+            if self.shared.messages is not None:
+                for message in self.shared.messages:
+                    message.build(self, '', None)
+            if self.shared.groups is not None:
+                for group in self.shared.groups:
+                    group.build(self, None)
+
     def build_device_messages(self):
         if self.devices is not None:
             for device in self.devices:
                 device.build_messages(self)
+
+    def has_shared_startup_actions(self):
+        return self.shared is not None and self.shared.initial is not None
+
+    def add_shared_startup_actions(self, bank0):
+        if self.shared is not None:
+            if self.shared.initial is not None:
+                for message_name in self.shared.initial:
+                    bank0.add_message(self.action_name_to_simple(message_name, "On Enter Bank - Execute Once Only"))
+
+    def has_device_startup_actions(self):
+        if self.devices is not None:
+            for device in self.devices:
+                if device.has_startup_actions():
+                    return True
+        return False
 
     def add_device_startup_actions(self, bank0):
         if self.devices is not None:
@@ -694,6 +742,9 @@ class Intuitive(jg.GrammarModel):
         # Add goto bank messages to the message catalogue
         self.build_goto_bank_messages()
 
+        # Add shared messages to the message catalogue
+        self.build_shared_messages()
+
         # Add device messages to the message catalogue
         self.build_device_messages()
 
@@ -712,6 +763,9 @@ class Intuitive(jg.GrammarModel):
         bank0 = None
         if simple_model_obj.banks is not None:
             bank0 = simple_model_obj.banks[0]
+        if bank0 is None and (self.has_shared_startup_actions() or self.has_device_startup_actions()):
+            raise IntuitiveException('need-bank-0', 'Bank 0 required for initial messages')
+        self.add_shared_startup_actions(bank0)
         self.add_device_startup_actions(bank0)
 
         return simple_model_obj

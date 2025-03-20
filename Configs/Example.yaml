@@ -3,7 +3,7 @@
 # The midi_channel is the midi channel of the Morningstar device
 # TODO: Clean this up, make it more lifelike
 system:
-  version: 1.0.0
+  version: 1.1.0
   midi_channel: 3
 
 # Color Palettes
@@ -55,6 +55,16 @@ palettes:
     preset_led: aqua
     preset_led_shifted: lightsalmon
     preset_led_toggle: tomato
+
+# System wide settings
+shared:
+  messages:
+    - {name: Short Sleep, type: Delay, ms: 350}
+    - {name: Long Sleep, type: Delay, ms: 1000}
+  groups:
+    - name: Favorite
+      messages: [ Overdrive Grungy, Chorus SquareModWah ]
+  initial: [Long Sleep, Long Sleep]
 
 # Devices
 # Name
@@ -188,6 +198,10 @@ banks:
         actions:
           - name: TimeLine Digital
           - name: TimeLine Mix 50-50
+      - short_name: Preset K
+        actions:
+          - name: Short Sleep
+          - name: Favorite
   # Bank Actions Example
   - name: Bank with actions
     actions:

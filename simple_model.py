@@ -184,6 +184,11 @@ class SimpleBank(jg.GrammarModel):
             self.modified = True
         return result
 
+    def add_message(self, message):
+        if self.messages is None:
+            self.messages = []
+        self.messages += message
+
     def from_backup(self, backup_bank, bank_catalog):
         if backup_bank.short_name is not None:
             raise IntuitiveException('unimplemented', 'bank short_name')

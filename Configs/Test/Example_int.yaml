@@ -1,4 +1,4 @@
-version: 1.0.0
+version: 1.1.0
 midi_channel: 3
 
 midi_channels:
@@ -16,6 +16,8 @@ banks:
     text: orchid
     background: gray
     messages:
+      - {trigger: On Enter Bank - Execute Once Only, type: Delay, delay: 1000}
+      - {trigger: On Enter Bank - Execute Once Only, type: Delay, delay: 1000}
       - {trigger: On Enter Bank - Execute Once Only, type: CC, channel: 4, number: 102, value: 127}
       - {trigger: On Enter Bank - Execute Once Only, type: CC, channel: 4, number: 0, value: 0}
       - {trigger: On Enter Bank - Execute Once Only, type: PC, channel: 4, number: 100}
@@ -71,8 +73,8 @@ banks:
         text: black
         background: lightyellow
         messages:
-          - { type: Engage Preset, trigger: Press, bank: 5, preset: 0 }
-          - { type: Engage Preset, trigger: Release, bank: 5, preset: 1 }
+          - { type: Engage Preset, trigger: Press, bank: 5, preset: 1 }
+          - { type: Engage Preset, trigger: Release, bank: 5, preset: 2 }
       - short_name: ''
         background: black
         text: black
@@ -83,6 +85,12 @@ banks:
           - { type: CC, trigger: Press, channel: 8, number: 19, value: 2}
           - { type: Delay, trigger: Press, delay: 350}
           - { type: CC, trigger: Press, channel: 8, number: 14, value: 64}
+      - short_name: Preset K
+        text: black
+        background: lightyellow
+        messages:
+          - { type: Delay, trigger: Press, delay: 350}
+          - { type: Engage Preset, trigger: Press, bank: 5, preset: 0 }
 
     # A bank with action on entry
   - name: Bank with actions
@@ -218,6 +226,13 @@ banks:
     text: black
     background: lightyellow
     presets:
+      - short_name: Favorite
+        text: black
+        background: lightyellow
+        messages:
+          - { type: CC, trigger: No Action, channel: 2, number: 0, value: 0 }
+          - { type: PC, trigger: No Action, channel: 2, number: 0 }
+          - { type: PC, trigger: No Action, channel: 3, number: 0 }
       - short_name: Delay Group 1
         text: black
         background: lightyellow

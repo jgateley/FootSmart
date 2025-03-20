@@ -132,10 +132,19 @@ bank_schema = jg.Dict('bank',
 
 banks_schema = jg.List('bank list', 0, bank_schema, var='banks')
 
+shared_schema = jg.Dict('shared',
+                        [jg.Dict.make_key('messages', jg.List('messages', 0,
+                                                              make_message_schema(), var='messages')),
+                         jg.Dict.make_key('initial', jg.List('initial', 0,
+                                                             jg.Atom('message', str), var='initial')),
+                         jg.Dict.make_key('groups', jg.List('groups', 0, device_group_schema, var='groups'))],
+                        model=intuitive_model.DeviceModel, var='shared')
+
 intuitive_schema = \
     jg.Dict('intuitive',
             [jg.Dict.make_key('system', system_schema, required=True),
              jg.Dict.make_key('palettes', palettes_schema),
+             jg.Dict.make_key('shared', shared_schema),
              jg.Dict.make_key('devices', devices_schema),
              jg.Dict.make_key('banks', banks_schema)],
             model=intuitive_model.Intuitive)

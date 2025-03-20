@@ -4,7 +4,7 @@
 # Version must be parsed before anything else, otherwise grammars don't match
 # MIDI channel is the channel of the Morningstar device
 system:
-  version: 1.0.0
+  version: 1.1.0
   midi_channel: 3
 
 # Color Palettes
@@ -59,6 +59,19 @@ palettes:
 - name: navigation
   text: blue
   background: black
+
+# Controller wide messages
+shared:
+  messages:
+    - { name: Short Sleep, type: Delay, ms: 350 }
+    - { name: One Second Sleep, type: Delay, ms: 1000 }
+  groups:
+    - name: Two Second Sleep
+      messages: [One Second Sleep, One Second Sleep]
+    - name: Four Second Sleep
+      messages: [Two Second Sleep, Two Second Sleep]
+    - name: Eight Second Sleep
+      messages: [Four Second Sleep, Four Second Sleep]
 
 # Devices
 # Name, midi channel, and a list of messages
@@ -142,6 +155,7 @@ devices:
   #
   # There is no CC message to select an algorithm.
   # Instead, you have to create a preset based on the algorithm, and then switch to that preset
+  # NOTE THAT THIS OVERWRITES ALL EXISTING PARAMETERS
   #
   # Once you have done that, you have 10 parameters that can be modified.
   # For some of the algorithms, I have customized the parameters to be easier to use
@@ -152,6 +166,7 @@ devices:
     messages:
     - {name: PreludeIntro, type: PC, number: 9}
     - {name: Chorus, type: PC, number: 0}
+    - {name: Spring, type: PC, number: 1}
     # Parameters, generic, applies to all algorithms
     - {name: Parameter 1, type: CC, number: 22, value: 0}
     - {name: Parameter 2, type: CC, number: 23, value: 0}
@@ -167,15 +182,15 @@ devices:
     # Chorus Parameter 1: Intensity, 0-99
     - {name: Chorus Intensity 0, type: CC, number: 22, value: 0}
     - {name: Chorus Intensity 90, type: CC, number: 22, value: 115}
-    # Chorus Parameter 1: Type
+    # Chorus Parameter 2: Type
     - {name: Chorus Type Liquid, type: CC, number: 23, value: 16}
     - {name: Chorus Type Organic, type: CC, number: 23, value: 48}
     - {name: Chorus Type Shimmer, type: CC, number: 23, value: 80}
     - {name: Chorus Type Classic, type: CC, number: 23, value: 112}
-    # Chorus Parameter 2: Depth, 0-99
+    # Chorus Parameter 3: Depth, 0-99
     - {name: Chorus Depth 0, type: CC, number: 24, value: 0}
     - {name: Chorus Depth 30, type: CC, number: 24, value: 38}
-    # Chorus Parameter 3: Speed (not linear, so I put in some example values)
+    # Chorus Parameter 4: Speed (not linear, so I put in some example values)
     - {name: Chorus Speed .1Hz, type: CC, number: 25, value: 0}
     - {name: Chorus Speed .16Hz, type: CC, number: 25, value: 16}
     - {name: Chorus Speed .27Hz, type: CC, number: 25, value: 32}
@@ -226,21 +241,39 @@ devices:
     - {name: Chorus ModSrc Envelope, type: CC, number: 31, value: 94}
     - {name: Chorus ModSrc ADSR, type: CC, number: 31, value: 108}
     - {name: Chorus ModSrc Expr, type: CC, number: 31, value: 126}
+    # Spring reverb parameters
+    # Mix
+    - {name: Spring Mix 0, type: CC, number: 22, value: 0}
+    # Decay in seconds? Or note based
+    - {name: Spring Decay 0, type: CC, number: 23, value: 0}
+    # Spring Tension
+    - {name: Spring Tension 0, type: CC, number: 24, value: 0}
+    # Number of Springs
+    - {name: Spring Number 0, type: CC, number: 25, value: 0}
+    # Low Band Damping Frequency
+    - {name: Spring Low Band Damping 0, type: CC, number: 26, value: 0}
+    # High Band Damping Frequency
+    - {name: Spring High Band Damping 0, type: CC, number: 27, value: 0}
+    # Tremolo Intensity
+    - {name: Spring Tremolo 0, type: CC, number: 28, value: 0}
+    # Tremolo rate or note based
+    - {name: Spring Tremolo Rate 0, type: CC, number: 29, value: 0}
+    # Modulation Level
+    - {name: Spring Mod Level 0, type: CC, number: 30, value: 0}
+    # Resonance
+    - {name: Spring Resonance 0, type: CC, number: 31, value: 0}
     groups:
-      - name: No Chorus
-        messages: [Chorus Intensity 0, Chorus Depth 0, Chorus Fdbk/MDO/Fltr 0, Chorus DMOD 0, Chorus SMOD 0, Chorus Static]
+      - name: None
+        messages: [Spring, Spring Mix 0, Spring Decay 0, Spring Tension 0, Spring Number 0, Spring Low Band Damping 0, Spring High Band Damping 0, Spring Tremolo 0, Spring Tremolo Rate 0, Spring Mod Level 0, Spring Resonance 0]
       - name: Basic Chorus
-        messages: [Chorus Intensity 90, Chorus Depth 30, Chorus Fdbk/MDO/Fltr 50, Chorus DMOD 40, Chorus SMOD 60, Chorus Static]
-      - name: Chorus Static
-        messages: [Chorus, Chorus Type Liquid, Chorus Speed 1.2Hz, Chorus Shape Sine, Chorus Rate 1.75x, Chorus ModSrc Sine]
-    initial: [Bypass]
-#    initial: [Enable, No Chorus]
+        messages: [Chorus, Chorus Type Liquid, Chorus Speed 1.2Hz, Chorus Shape Sine, Chorus Rate 1.75x, Chorus ModSrc Sine, Chorus Intensity 90, Chorus Depth 30, Chorus Fdbk/MDO/Fltr 50, Chorus DMOD 40, Chorus SMOD 60]
+    initial: [Enable, None]
 
   # The Strymon TimeLine delay pedal
   # TODO: Some delay types have different/additional configuration parameters
   # TODO: Such as dTape tape speed.
   # TODO: These are not done yet
-  # There are two huge gotchas in the TimeLine:
+  # There are three huge gotchas in the TimeLine:
   # When you change the delay machine (via MIDI CC 19), all other parameters are read from the pedal knobs.
   # Thus, this sequence does not have the expected behavior:
   #    Turn the mix knob all the way to the right (full wet)
@@ -252,31 +285,33 @@ devices:
   #
   # This means when using the TimeLine, when you change the delay type, you must then send all other parameters.
   #
-  # The second huge gotcha is that when you change the delay type, you must wait 350ms before sending the other parameters
+  # The second huge gotcha is that when you change the delay type OR enable the TImeLine, you must wait 350ms before sending the other parameters
   # If you send them too quickly, they are ignored
   # This motivated me to add a 'followup' message (like a setup message but happens afterwards)
   # and a "Delay" message
+  #
+  # The third gotcha: on startup the TimeLine doesn't respond to messages for about 8 seconds
+  # after power-on
   - name: TimeLine
     channel: 5
     enable: {type: CC, number: 102, value: 127}
     bypass: {type: CC, number: 102, value: 0}
     messages:
-      - {name: Sleep, type: Delay, ms: 350}
       # Delay Machines
       # Set Machine is only used for cycle, and does not include the sleep
       - {name: Set Machine, type: CC, number: 19, value: 0}
-      - {name: Digital, type: CC, number: 19, value: 2, followup: Sleep}
-      - {name: Dual, type: CC, number: 19, value: 3, followup: Sleep}
-      - {name: Pattern, type: CC, number: 19, value: 4, followup: Sleep}
-      - {name: Reverse, type: CC, number: 19, value: 5, followup: Sleep}
-      - {name: Ice, type: CC, number: 19, value: 6, followup: Sleep}
-      - {name: Duck, type: CC, number: 19, value: 7, followup: Sleep}
-      - {name: Swell, type: CC, number: 19, value: 8, followup: Sleep}
-      - {name: Trem, type: CC, number: 19, value: 9, followup: Sleep}
-      - {name: Filter, type: CC, number: 19, value: 10, followup: Sleep}
-      - {name: Lo-Fi, type: CC, number: 19, value: 11, followup: Sleep}
-      - {name: dTape, type: CC, number: 19, value: 0, followup: Sleep}
-      - {name: dBucket, type: CC, number: 19, value: 1, followup: Sleep}
+      - {name: Digital, type: CC, number: 19, value: 2, followup: Short Sleep}
+      - {name: Dual, type: CC, number: 19, value: 3, followup: Short Sleep}
+      - {name: Pattern, type: CC, number: 19, value: 4, followup: Short Sleep}
+      - {name: Reverse, type: CC, number: 19, value: 5, followup: Short Sleep}
+      - {name: Ice, type: CC, number: 19, value: 6, followup: Short Sleep}
+      - {name: Duck, type: CC, number: 19, value: 7, followup: Short Sleep}
+      - {name: Swell, type: CC, number: 19, value: 8, followup: Short Sleep}
+      - {name: Trem, type: CC, number: 19, value: 9, followup: Short Sleep}
+      - {name: Filter, type: CC, number: 19, value: 10, followup: Short Sleep}
+      - {name: Lo-Fi, type: CC, number: 19, value: 11, followup: Short Sleep}
+      - {name: dTape, type: CC, number: 19, value: 0, followup: Short Sleep}
+      - {name: dBucket, type: CC, number: 19, value: 1, followup: Short Sleep}
       # Time
       # To experiment with the time parameter, the TimeLine should not sync to an external MIDI clock
       - {name: noclock, type: CC, number: 63, value: 0}
@@ -459,16 +494,16 @@ devices:
       - name: None
         messages: [Mix Dry]
       - name: Thin
-        messages: [Digital, noclock, Time 60ms, QuarterNote, Repeats Low, Mix 50-50, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
+        messages: [Digital, Time 60ms, QuarterNote, Repeats Low, Mix 50-50, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
       - name: Fat
-        messages: [Digital, noclock, Time 140ms, QuarterNote, Repeats Default, Mix 50-50, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
+        messages: [Digital, Time 140ms, QuarterNote, Repeats Default, Mix 50-50, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
       - name: Slow
-        messages: [Digital, noclock, Time 1150ms, QuarterNote, Repeats Default, Mix 50-50, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
+        messages: [Digital, Time 1150ms, QuarterNote, Repeats Default, Mix 50-50, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
       - name: Medium
-        messages: [Digital, noclock, Time 920ms, QuarterNote, Repeats Default, Mix 50-50, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
+        messages: [Digital, Time 920ms, QuarterNote, Repeats Default, Mix 50-50, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
       - name: Fast
-        messages: [Digital, noclock, Time 700ms, QuarterNote, Repeats Default, Mix 50-50, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
-    initial: [Enable, Fat]
+        messages: [Digital, Time 700ms, QuarterNote, Repeats Default, Mix 50-50, PFilter Default, Grit Default, Speed Default, Depth Default, Smear Default, High Pass]
+    initial: [Eight Second Sleep, Enable, Fat]
 
   # The Aeros looper pedal
   - name: Aeros
@@ -597,7 +632,6 @@ banks:
   palette: Experimental
   actions:
   - {name: Iridium Static}
-  - {name: H9 Chorus Static}
   presets:
     - type: scroll
       actions:
@@ -615,7 +649,7 @@ banks:
         - {name: Fast, action: TimeLine Fast}
     - type: scroll
       actions:
-        - {name: No Chorus, action: H9 No Chorus}
+        - {name: No H9, action: H9 None}
         - {name: Chorus, action: H9 Basic Chorus}
     - type: empty
     - type: empty
@@ -792,7 +826,6 @@ banks:
     palette: navigation
     actions: [{name: Previous Page}]
 
-# The H9 is complex, allowing many different effects
 # This bank is a navigation bank, getting you to a particular effect on the H9
 - name: H9
   description: H9 algorithms
@@ -801,8 +834,8 @@ banks:
     - short_name: H9 Chorus
       actions: [{name: Bank H9 Chorus}]
       palette: Experimental Dark
-    # TODO: complete this
-    - short_name: H9 Phaser
+    - short_name: H9 Spring Reverb
+      actions: [{name: Bank H9 Spring Reverb}]
       palette: Experimental Dark
     - type: empty
     - type: empty
@@ -882,6 +915,95 @@ banks:
   # Chorus ModSrc shape
   - type: cycle
     action: H9 Chorus ModSrc Sine
+    values: [0, 14, 28, 42, 52, 66, 80, 94, 108, 126]
+    names:
+      - Sine
+      - Triangle
+      - Peak
+      - Random
+      - Ramp
+      - Square
+      - Sample and Hold
+      - Envelope
+      - ADSR
+      - Expr
+  - short_name: Prev
+    palette: navigation
+    actions: [{name: Previous Page, trigger: Press}]
+
+- name: H9 Spring Reverb
+  description: H9 Spring Reverb exploration
+  palette: Experimental
+  actions: [{name: H9 Spring}]
+  presets:
+  # The Mix
+  - type: cycle
+    action: H9 Spring Mix 0
+    values: [115, 127, 0, 13, 26, 38, 51, 64, 77, 90, 102]
+    names: ["90", "99", "0", "10", "20", "30", "40", "50", "60", "70", "80"]
+    prefix: Mix
+  # Decay in second
+  - type: cycle
+    action: H9 Spring Decay 0
+    values: [16, 48, 80, 112]
+    names: [Liquid, Organic, Shimmer, Classic]
+  # Spring Tension
+  - type: cycle
+    action: H9 Spring Tension 0
+    values: [38, 51, 64, 77, 90, 102, 115, 127, 0, 13, 26]
+    names: ["30", "40", "50", "60", "70", "80", "90", "99", "0", "10", "20"]
+    prefix: Tension
+  # Number of Springs
+  - type: cycle
+    action: H9 Spring Number 0
+    values: [80, 96, 112, 127, 0, 16, 32, 48, 64]
+    names: [1.2Hz, 1.96Hz, 3.23Hz, 5Hz, .1Hz, .16Hz, .27Hz, .44Hz, .73Hz]
+    prefix: Springs
+  # Low band damping frequency
+  - type: cycle
+    action: H9 Spring Low Band Damping 0
+    values: [0, 14, 28, 42, 52, 66, 80, 94, 108, 126]
+    names:
+      - Sine
+      - Triangle
+      - Peak
+      - Random
+      - Ramp
+      - Square
+      - Sample and Hold
+      - Envelope
+      - ADSR
+      - Expr
+  - short_name: Next/Home
+    palette: navigation
+    actions: [{name: Next Page, trigger: Press}, {name: Bank Home, trigger: Long Press}]
+  # High band damping frequency
+  - type: cycle
+    action: H9 Spring High Band Damping 0
+    values: [64, 77, 90, 102, 115, 127, 0, 13, 26, 38, 51]
+    names: ["50", "60", "70", "80", "90", "99", "0", "10", "20", "30", "40"]
+    prefix: HiDamp
+  # Tremolo Intensity
+  - type: cycle
+    action: H9 Spring Tremolo 0
+    values: [51, 64, 77, 90, 102, 115, 127, 0, 13, 26, 38]
+    names: ["40", "50", "60", "70", "80", "90", "99", "0", "10", "20", "30"]
+    prefix: Trem
+  # Tremolo Rate
+  - type: cycle
+    action: H9 Spring Tremolo Rate 0
+    values: [77, 90, 102, 115, 127, 0, 13, 26, 38, 51, 64]
+    names: ["60", "70", "80", "90", "99", "0", "10", "20", "30", "40", "50"]
+    prefix: Trem Rate
+  # Modulation Level
+  - type: cycle
+    action: H9 Spring Mod Level 0
+    values: [80, 96, 112, 127, 0, 16, 32, 48, 64]
+    names: [1.75x, 2.96x, 5.02x, 8x, .12x, .21x, .36x, .61x, 1.03x]
+    prefix: Mod Level
+  # Resonance
+  - type: cycle
+    action: H9 Spring Resonance 0
     values: [0, 14, 28, 42, 52, 66, 80, 94, 108, 126]
     names:
       - Sine
